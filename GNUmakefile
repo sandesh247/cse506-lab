@@ -188,7 +188,7 @@ grade: $(LABSETUP)grade-lab$(LAB).sh
 
 handin: realclean
 	if [ `git status --porcelain| wc -l` != 0 ] ; then echo "\n\n\n\n\t\tWARNING: YOU HAVE UNCOMMITTED CHANGES\n\n    Consider committing any pending changes and rerunning make handin.\n\n\n\n"; fi
-	git tag -f -a lab6-handin -m "Lab6 Handin"
+	git tag -f -a lab7-handin -m "Lab7 Handin"
 	git push --tags
 
 tarball: realclean
