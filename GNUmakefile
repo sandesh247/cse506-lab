@@ -186,9 +186,10 @@ grade: $(LABSETUP)grade-lab$(LAB).sh
 	$(MAKE) all
 	sh $(LABSETUP)grade-lab$(LAB).sh
 
-handin: tarball
-	@echo Please visit http://pdos.csail.mit.edu/cgi-bin/828handin
-	@echo and upload lab$(LAB)-handin.tar.gz.  Thanks!
+handin: realclean
+	if [ `git status --porcelain| wc -l` != 0 ] ; then echo "\n\n\n\n\t\tWARNING: YOU HAVE UNCOMMITTED CHANGES\n\n    Consider committing any pending changes and rerunning make handin.\n\n\n\n"; fi
+	git tag -f -a lab5-handin -m "Lab5 Handin"
+	git push --tags
 
 tarball: realclean
 	tar cf - `find . -type f | grep -v '^\.*$$' | grep -v '/CVS/' | grep -v '/\.svn/' | grep -v '/\.git/' | grep -v 'lab[0-9].*\.tar\.gz'` | gzip > lab$(LAB)-handin.tar.gz
