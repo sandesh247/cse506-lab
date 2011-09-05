@@ -169,8 +169,8 @@ cga_putc(int c)
 	switch (c & 0xff) {
 	case '\b':
 		if (crt_pos > 0) {
-			crt_pos--;
-			crt_buf[crt_pos] = (c & ~0xff) | ' ';
+		  crt_pos--;
+		  crt_buf[crt_pos] = (c & ~0xff) | ' ';
 		}
 		break;
 	case '\n':

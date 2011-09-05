@@ -24,6 +24,7 @@ struct Command {
 static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
+	{ "backtrace", "Display backtrace information", mon_backtrace },
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -59,8 +60,33 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
-	// Your code here.
-	return 0;
+  // Your code here.
+  int *ebp = (int*)read_ebp(); // This gets us the value of esp when THIS function was entered
+  uintptr_t eip = read_eip();
+
+  cprintf("Stack backtrace:\n");
+
+  while (ebp) {
+    cprintf("ebp %08x  eip %08x  args %08x %08x %08x %08x %08x\n", 
+	    ebp, eip, ebp[2], ebp[3], ebp[4], ebp[5], ebp[6]);
+    struct Eipdebuginfo info;
+    debuginfo_eip(eip, &info);
+
+    int fn_namelen = info.eip_fn_namelen < 255 ? info.eip_fn_namelen : 255;
+    char fn_name[256];
+    int i = 0;
+
+    memmove(fn_name, info.eip_fn_name, fn_namelen);
+    fn_name[fn_namelen] = '\0';
+
+    cprintf("\t%c[1;31m%s%c[0m:%d: %c[1;33m%s%c[0m+%d\n", 
+	    0x1B, info.eip_file, 0x1B, info.eip_line, 0x1B, fn_name, 0x1B, eip-info.eip_fn_addr);
+
+    eip = ebp[1];
+    ebp = (int*)(*ebp);
+  }
+
+  return 0;
 }
 
 
