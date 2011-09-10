@@ -1,0 +1,20 @@
+Lab partners:
+Sandesh Singh & Dhruv Matani
+
+
+
++------+
+| Lab1 |
++------+
+
+Late hours for Lab1: 0
+Late hours total: 0
+
+Challenge Problem: Colored output. Used the ANSI color output escape sequences
+
+ex1.c is in lab1/ex1.c
+
+
+
+
+
