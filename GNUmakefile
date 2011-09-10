@@ -121,7 +121,7 @@ include kern/Makefrag
 
 
 IMAGES = $(OBJDIR)/kern/kernel.img
-QEMUOPTS = -no-kvm -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio
+QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio
 
 .gdbinit: .gdbinit.tmpl
 	sed "s/localhost:1234/localhost:$(GDBPORT)/" < $^ > $@
