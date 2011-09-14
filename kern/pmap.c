@@ -1,4 +1,6 @@
-/* See COPYRIGHT for copyright information. */
+/* -*- tab-width: 8 -*- 
+ * See COPYRIGHT for copyright information.
+ */
 
 #include <inc/x86.h>
 #include <inc/mmu.h>
@@ -125,6 +127,7 @@ boot_alloc(uint32_t n, uint32_t align)
 	boot_freemem = ROUNDUP(boot_freemem,  align);
 	void *alloc_chunk = boot_freemem;
 	boot_freemem += n;
+	cprintf("boot_alloc() returning: %x, boot_freemem is: %x\n", alloc_chunk, boot_freemem);
 	return alloc_chunk;
 
 	// return NULL;
@@ -179,7 +182,7 @@ i386_vm_init(void)
 	// array.  'npage' is the number of physical pages in memory.
 	// User-level programs will get read-only access to the array as well.
 	// Your code goes here:
-	struct Page *ppages = boot_alloc(sizeof(struct Page) * npage, PGSIZE);
+	pages = boot_alloc(sizeof(struct Page) * npage, PGSIZE);
 
 
 	//////////////////////////////////////////////////////////////////////
@@ -188,6 +191,8 @@ i386_vm_init(void)
 	// memory management will go through the page_* functions. In
 	// particular, we can now map memory using boot_map_segment or page_insert
 	page_init();
+
+	cprintf("Calling check_page_alloc()\n");
 
 	check_page_alloc();
 
@@ -293,6 +298,8 @@ check_page_alloc()
 	// eventually causes trouble.
 	LIST_FOREACH(pp0, &page_free_list, pp_link)
 		memset(page2kva(pp0), 0x97, 128);
+
+	// cprintf("After zeroing out all free pages in check_page_alloc()\n");
 
 	LIST_FOREACH(pp0, &page_free_list, pp_link) {
 		// check that we didn't corrupt the free list itself
@@ -452,12 +459,23 @@ page_init(void)
 	//     page tables and other data structures?
 	//
 	// Change the code to reflect this.
-	int i;
+        int i, ctr = 0;
 	LIST_INIT(&page_free_list);
 	for (i = 0; i < npage; i++) {
-		pages[i].pp_ref = 0;
-		LIST_INSERT_HEAD(&page_free_list, &pages[i], pp_link);
+	  if ((i == 0) || 
+	      ((i > basemem/PGSIZE || i*PGSIZE >= IOPHYSMEM) && i*PGSIZE <= EXTPHYSMEM) || 
+	      (i*PGSIZE > EXTPHYSMEM && (char*)(i*PGSIZE + KERNBASE) < boot_freemem)) {
+	    pages[i].pp_ref = 1;
+	  }
+	  else {
+	    ++ctr;
+	    pages[i].pp_ref = 0;
+	    LIST_INSERT_HEAD(&page_free_list, &pages[i], pp_link);
+	  }
 	}
+
+	cprintf("Done with page_init(). Initialized %d/%d pages\n", ctr, i);
+
 }
 
 //
@@ -643,6 +661,8 @@ page_check(void)
 	pte_t *ptep, *ptep1;
 	void *va;
 	int i;
+
+	cprintf("Starting page_check()\n");
 
 	// should be able to allocate three pages
 	pp0 = pp1 = pp2 = 0;
