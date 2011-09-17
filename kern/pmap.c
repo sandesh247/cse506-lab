@@ -467,7 +467,8 @@ page_init(void)
 	//     page tables and other data structures?
 	//
 	// Change the code to reflect this.
-        int i, ctr = 0;
+	int i, ctr = 0;
+	
 	LIST_INIT(&page_free_list);
 	for (i = 0; i < npage; i++) {
 	  if ((i == 0) || 
@@ -516,11 +517,14 @@ int
 page_alloc(struct Page **pp_store)
 {
 	*pp_store = LIST_FIRST(&page_free_list);
+
+	if(!(*pp_store)) return -E_NO_MEM;	
+
 	LIST_REMOVE(*pp_store, pp_link);
 	page_initpp(*pp_store);
 
 	// Fill this function in
-	return -E_NO_MEM;
+	return 0;
 }
 
 //
