@@ -430,11 +430,17 @@ check_va2pa(pde_t *pgdir, uintptr_t va)
 	pte_t *p;
 
 	pgdir = &pgdir[PDX(va)];
-	if (!(*pgdir & PTE_P))
-		return ~0;
+	if (!(*pgdir & PTE_P)) {
+	  DPRINTF("[1] check_va2pa returning NULL\n");
+	  return ~0;
+	}
+	DPRINTF("check_va2pa::*pgdir: %x\n", *pgdir);
+
 	p = (pte_t*) KADDR(PTE_ADDR(*pgdir));
-	if (!(p[PTX(va)] & PTE_P))
-		return ~0;
+	if (!(p[PTX(va)] & PTE_P)) {
+	  DPRINTF("[2] check_va2pa returning NULL since p[%d] == %x\n", PTX(va), p[PTX(va)]);
+	  return ~0;
+	}
 	return PTE_ADDR(p[PTX(va)]);
 }
 		
@@ -588,21 +594,25 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
       return NULL;
     }
     physaddr_t paddr = page2pa(ppage);
-
-    // Zero out the page's contents
-    memset((void*)paddr, 0, PGSIZE);
+    DPRINTF("pgdir_walk::paddr: %x\n", paddr);
 
     pgdir[PDX(va)] = paddr | PTE_U |PTE_W | PTE_P;
     // Set reference counter to 1.
     ppage->pp_ref = 1;
 
     // Setup the address of the physical page in the PTE
-    pte = pgdir_walk(pgdir, va, 0);
+
+    // We set 'pte' to the start of the page table.
+    pte = pgdir_walk(pgdir, va, 0) - PTX(va);
+
+    // Zero out the page's contents
+    memset((void*)pte, 0, PGSIZE);
 
     pte[PTX(va)] = paddr | PTE_U |PTE_W | PTE_P;
+    DPRINTF("pgdir_walk: pte[%d] = %x\n", PTX(va), pte[PTX(va)]);
 
     cprintf("pgdir_walk returning previous call's return\n");
-    return pte;
+    return pte + PTX(va);
   }
   else {
     pgdir = &pgdir[PDX(va)];
@@ -612,7 +622,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
     }
     pte = (pte_t*) KADDR(PTE_ADDR(*pgdir));
     cprintf("pgdir_walk returning %x\n", &pte[PTX(va)]);
-    return &pte[PTX(va)];
+    return pte + PTX(va);
   }
 
   cprintf("pgdir_walk returning NULL\n");
