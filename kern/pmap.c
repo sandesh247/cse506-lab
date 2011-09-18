@@ -797,6 +797,9 @@ page_check(void)
 	// free pp0 and try again: pp0 should be used for page table
 	page_free(pp0);
 	assert(page_insert(boot_pgdir, pp1, 0x0, 0) == 0);
+
+	DPRINTF("PTE_ADDR(boot_pgdir[0]): %d, page2pa(pp0): %d\n", PTE_ADDR(boot_pgdir[0]), page2pa(pp0));
+
 	assert(PTE_ADDR(boot_pgdir[0]) == page2pa(pp0));
 	assert(check_va2pa(boot_pgdir, 0x0) == page2pa(pp1));
 	assert(pp1->pp_ref == 1);
