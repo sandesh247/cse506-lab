@@ -589,11 +589,20 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
     }
     physaddr_t paddr = page2pa(ppage);
 
+    // Zero out the page's contents
+    memset((void*)paddr, 0, PGSIZE);
+
     pgdir[PDX(va)] = paddr | PTE_U |PTE_W | PTE_P;
     // Set reference counter to 1.
     ppage->pp_ref = 1;
+
+    // Setup the address of the physical page in the PTE
+    pte = pgdir_walk(pgdir, va, 0);
+
+    pte[PTX(va)] = paddr | PTE_U |PTE_W | PTE_P;
+
     cprintf("pgdir_walk returning previous call's return\n");
-    return pgdir_walk(pgdir, va, 0);
+    return pte;
   }
   else {
     pgdir = &pgdir[PDX(va)];
