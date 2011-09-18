@@ -587,8 +587,8 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
     physaddr_t paddr = page2pa(ppage);
 
     pgdir[PDX(va)] = paddr | PTE_U |PTE_W | PTE_P;
-    // Increment reference count.
-    page_incref(ppage);
+    // Set reference counter to 1.
+    ppage->pp_ref = 1;
     return pgdir_walk(pgdir, va, 0);
   }
   else {
@@ -667,8 +667,9 @@ boot_map_segment(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int per
 struct Page *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
-	// Fill this function in
-	return NULL;
+  // Fill this function in
+  pte_t *pte = pgdir_walk(pgdir, va, 0);
+  return NULL;
 }
 
 //
