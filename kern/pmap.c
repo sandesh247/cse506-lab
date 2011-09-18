@@ -236,7 +236,7 @@ i386_vm_init(void)
 	// We might not have 2^32 - KERNBASE bytes of physical memory, but
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
-	// Your code goes here: 
+	// Your code goes here:
 
 	// Check that the initial page directory has been set up correctly.
 	check_boot_pgdir();
@@ -633,7 +633,33 @@ page_incref(struct Page *pp) {
 int
 page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm) 
 {
-	// Fill this function in
+	struct Page *pprev;
+	pte_t *pte; 
+
+	physaddr_t page_addr;
+	int tlb_invalid = 0;
+
+	page_addr = page2pa(pp);
+  pte = pgdir_walk(pgdir, va, 0);
+
+	if(!pte) {
+		pte = pgdir_walk(pgdir, va, 1);
+		if(!pte) return -E_NO_MEM;
+
+		pte[PTX(va)] = page_addr;
+		page_incref(pp);
+	} else {
+		pprev = pa2page(pte[PTX(va)]);
+		
+		if(pp == pprev) {
+			// this va was mapped to this page wonly ...
+		} else {
+			page_remove(pgdir, va);
+			pte[PTX(va)] = page_addr;
+			page_incref(pp);
+		}
+	}
+	
 	return 0;
 }
 
