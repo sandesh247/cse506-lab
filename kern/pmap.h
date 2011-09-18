@@ -92,4 +92,6 @@ pte_t *pgdir_walk(pde_t *pgdir, const void *va, int create);
 #define DPRINTF cprintf
 // #define DPRINTF //
 
+void dump_pages(int key);
+
 #endif /* !JOS_KERN_PMAP_H */

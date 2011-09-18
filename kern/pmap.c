@@ -554,8 +554,10 @@ page_free(struct Page *pp)
 void
 page_decref(struct Page* pp)
 {
-	if (--pp->pp_ref == 0)
+	if (--pp->pp_ref == 0) {
+		DPRINTF("page_decref::freeing page at %x\n", pp); 
 		page_free(pp);
+	}
 }
 
 // Given 'pgdir', a pointer to a page directory, pgdir_walk returns
@@ -669,7 +671,8 @@ page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm)
 	physaddr_t page_addr;
 	int tlb_invalid = 0;
 
-	page_addr = page2pa(pp) | PTE_P | PTE_W | PTE_U;
+	tlb_invalidate(pgdir, va);
+	page_addr = page2pa(pp) | PTE_P | PTE_W | PTE_U | perm;
 	pte = pgdir_walk(pgdir, va, 0);
 
 	if(!pte) {
@@ -688,12 +691,14 @@ page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm)
 		if(pp == pprev) {
 			// this va was mapped to this page wonly ...
 		} else {
+			DPRINTF("page_insert::removing page at VA: %x\n", va);
 			page_remove(pgdir, va);
 			pte[0] = page_addr;
 			page_incref(pp);
 		}
 	}
 
+	tlb_invalidate(pgdir, va);
 	cprintf("page_insert returning: 0 (SUCCESS)\n");
 	return 0;
 }
@@ -736,7 +741,12 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
   if (pte_store) {
     *pte_store = pte;
   }
-  return pa2page(PTE_ADDR(pte[0]));
+	
+	if(*pte & PTE_P) {
+		return pa2page(PTE_ADDR(*pte));
+	}
+
+	return NULL;
 }
 
 //
@@ -807,6 +817,8 @@ page_check(void)
 	fl = page_free_list;
 	LIST_INIT(&page_free_list);
 
+	dump_pages(__LINE__);
+
 	// should be no free memory
 	assert(page_alloc(&pp) == -E_NO_MEM);
 
@@ -818,7 +830,9 @@ page_check(void)
 
 	// free pp0 and try again: pp0 should be used for page table
 	page_free(pp0);
+	dump_pages(__LINE__);
 	assert(page_insert(boot_pgdir, pp1, 0x0, 0) == 0);
+	dump_pages(__LINE__);
 
 	DPRINTF("PTE_ADDR(boot_pgdir[0]): %d, page2pa(pp0): %d\n", PTE_ADDR(boot_pgdir[0]), page2pa(pp0));
 
@@ -831,8 +845,10 @@ page_check(void)
 
 	// should be able to map pp2 at PGSIZE because pp0 is already allocated for page table
 	assert(page_insert(boot_pgdir, pp2, (void*) PGSIZE, 0) == 0);
+	dump_pages(__LINE__);
 	assert(check_va2pa(boot_pgdir, PGSIZE) == page2pa(pp2));
 	assert(pp2->pp_ref == 1);
+
 
 	// should be no free memory
 	assert(page_alloc(&pp) == -E_NO_MEM);
@@ -946,3 +962,12 @@ page_check(void)
 	cprintf("page_check() succeeded!\n");
 }
 
+void dump_pages(int key) {
+	struct Page *ipp;
+	DPRINTF("%d: == PAGES: | ", key);
+	LIST_FOREACH(ipp, &page_free_list, pp_link) {
+		DPRINTF("ptr: %x idx: %d | ", ipp, ipp - pages);
+	}
+
+	DPRINTF("==\n");
+}
