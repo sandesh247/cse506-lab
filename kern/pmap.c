@@ -735,7 +735,16 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 void
 page_remove(pde_t *pgdir, void *va)
 {
-	// Fill this function in
+	struct Page* cp;
+	pte_t* pte;
+
+	cp = page_lookup(pgdir, va, &pte);
+
+	if(!cp) return;
+
+	page_decref(cp);
+	*pte = 0;
+	tlb_invalidate(pgdir, va);
 }
 
 //
