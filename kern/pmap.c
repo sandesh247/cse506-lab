@@ -720,7 +720,7 @@ boot_map_segment(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int per
   // Fill this function in
   uintptr_t addr;
   for (addr = la; addr < la+size; la += PGSIZE) {
-    struct Page *ppage = pa2page(pa);
+    struct Page *ppage = pa2page(pa + addr - la);
     LIST_REMOVE(ppage, pp_link);
     pte_t *pte = pgdir_walk(pgdir, (const void*)addr, 1);
     pte[0] = (pa + addr - la) | PTE_P | perm;
