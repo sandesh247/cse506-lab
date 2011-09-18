@@ -588,7 +588,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 
     pgdir[PDX(va)] = paddr | PTE_U |PTE_W | PTE_P;
     // Increment reference count.
-    pgdir_incref(ppage);
+    page_incref(ppage);
     return pgdir_walk(pgdir, va, 0);
   }
   else {
@@ -604,7 +604,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 
 
 void
-pgdir_incref(struct Page *pp) {
+page_incref(struct Page *pp) {
   ++(pp->pp_ref);
 }
 
