@@ -810,6 +810,8 @@ page_check(void)
 	DPRINTF("PTE_ADDR(boot_pgdir[0]): %d, page2pa(pp0): %d\n", PTE_ADDR(boot_pgdir[0]), page2pa(pp0));
 
 	assert(PTE_ADDR(boot_pgdir[0]) == page2pa(pp0));
+
+	DPRINTF("check_va2pa(boot_pgdir, 0x0): %d, page2pa(pp1)): %d\n", check_va2pa(boot_pgdir, 0x0), page2pa(pp1));
 	assert(check_va2pa(boot_pgdir, 0x0) == page2pa(pp1));
 	assert(pp1->pp_ref == 1);
 	assert(pp0->pp_ref == 1);
