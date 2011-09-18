@@ -571,17 +571,20 @@ page_decref(struct Page* pp)
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
+  cprintf("pgdir_walk(%x, %x, %d)\n", pgdir, va, create);
   // Fill this function in
   pte_t *pte;
 
   if (create) {
     pte = pgdir_walk(pgdir, va, 0);
     if (pte) {
+      cprintf("pgdir_walk returning %x\n", pte);
       return pte;
     }
     struct Page *ppage;
     int ret = page_alloc(&ppage);
     if (ret) {
+      cprintf("pgdir_walk returning NULL\n");
       return NULL;
     }
     physaddr_t paddr = page2pa(ppage);
@@ -589,16 +592,21 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
     pgdir[PDX(va)] = paddr | PTE_U |PTE_W | PTE_P;
     // Set reference counter to 1.
     ppage->pp_ref = 1;
+    cprintf("pgdir_walk returning previous call's return\n");
     return pgdir_walk(pgdir, va, 0);
   }
   else {
     pgdir = &pgdir[PDX(va)];
     if (!(*pgdir & PTE_P)) {
+      cprintf("pgdir_walk returning NULL\n");
       return NULL;
     }
     pte = (pte_t*) KADDR(PTE_ADDR(*pgdir));
+    cprintf("pgdir_walk returning %x\n", &pte[PTX(va)]);
     return &pte[PTX(va)];
   }
+
+  cprintf("pgdir_walk returning NULL\n");
   return NULL;
 }
 
@@ -633,6 +641,7 @@ page_incref(struct Page *pp) {
 int
 page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm) 
 {
+  cprintf("page_insert(%x, %x, %x, %d)\n", pgdir, pp, va, perm);
 	struct Page *pprev;
 	pte_t *pte; 
 
@@ -640,11 +649,14 @@ page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm)
 	int tlb_invalid = 0;
 
 	page_addr = page2pa(pp);
-  pte = pgdir_walk(pgdir, va, 0);
+	pte = pgdir_walk(pgdir, va, 0);
 
 	if(!pte) {
 		pte = pgdir_walk(pgdir, va, 1);
-		if(!pte) return -E_NO_MEM;
+		if(!pte) {
+		  cprintf("page_insert returning: -E_NO_MEM\n");
+		  return -E_NO_MEM;
+		}
 
 		pte[PTX(va)] = page_addr;
 		page_incref(pp);
@@ -659,7 +671,8 @@ page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm)
 			page_incref(pp);
 		}
 	}
-	
+
+	cprintf("page_insert returning: 0 (SUCCESS)\n");
 	return 0;
 }
 
