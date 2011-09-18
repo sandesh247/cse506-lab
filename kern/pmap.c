@@ -571,8 +571,41 @@ page_decref(struct Page* pp)
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
-	// Fill this function in
-	return NULL;
+  // Fill this function in
+  pte_t *pte;
+
+  if (create) {
+    pte = pgdir_walk(pgdir, va, 0);
+    if (pte) {
+      return pte;
+    }
+    struct Page *ppage;
+    int ret = page_alloc(&ppage);
+    if (ret) {
+      return NULL;
+    }
+    physaddr_t paddr = page2pa(ppage);
+
+    pgdir[PDX(va)] = paddr | PTE_U |PTE_W | PTE_P;
+    // Increment reference count.
+    pgdir_incref(ppage);
+    return pgdir_walk(pgdir, va, 0);
+  }
+  else {
+    pgdir = &pgdir[PDX(va)];
+    if (!(*pgdir & PTE_P)) {
+      return NULL;
+    }
+    pte = (pte_t*) KADDR(PTE_ADDR(*pgdir));
+    return &pte[PTX(va)];
+  }
+  return NULL;
+}
+
+
+void
+pgdir_incref(struct Page *pp) {
+  ++(pp->pp_ref);
 }
 
 //
