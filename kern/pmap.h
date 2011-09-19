@@ -60,6 +60,7 @@ void	page_decref(struct Page *pp);
 void	page_incref(struct Page *pp);
 
 void	tlb_invalidate(pde_t *pgdir, void *va);
+static void map_la2pa(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int perm, int use_pa);
 
 static inline ppn_t
 page2ppn(struct Page *pp)

@@ -216,6 +216,7 @@ i386_vm_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
+	map_la2pa(boot_pgdir, UPAGES, PTSIZE, 0, PTE_U | PTE_P, 0);
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -228,6 +229,8 @@ i386_vm_init(void)
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
+	map_la2pa(boot_pgdir, KSTACKTOP - KSTKSIZE, KSTKSIZE, 0, PTE_W | PTE_P, 0);
+	map_la2pa(boot_pgdir, KSTACKTOP - PTSIZE, PTSIZE - KSTKSIZE, 0, 0, 2);
 
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE. 
@@ -237,6 +240,7 @@ i386_vm_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
+	map_la2pa(boot_pgdir, KERNBASE, 0xFFFFFFFF - KERNBASE, 0, PTE_W | PTE_P, 1);
 
 	// Check that the initial page directory has been set up correctly.
 	check_boot_pgdir();
@@ -717,13 +721,48 @@ page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm)
 static void
 boot_map_segment(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int perm)
 {
-  // Fill this function in
   uintptr_t addr;
   for (addr = la; addr < la+size; la += PGSIZE) {
     struct Page *ppage = pa2page(pa + addr - la);
     LIST_REMOVE(ppage, pp_link);
     pte_t *pte = pgdir_walk(pgdir, (const void*)addr, 1);
     pte[0] = (pa + addr - la) | PTE_P | perm;
+  }
+}
+
+// Maps a linear address to a physical address
+// Map [la, la+size) of linear address space to physical [pa, pa+size)
+// in the page table rooted at pgdir.  Size is a multiple of PGSIZE.
+//
+// The variable use_pa determines how the physical address pa is used.
+// pa == 0: the physical address is not used. Pages are taken off the free list.
+// pa == 1: the page corresponding to the physical address is used
+// pa == 2: the physical address is used as-is. Useful to clear linear addresses.
+static void
+map_la2pa(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int perm, int use_pa)
+{
+  uintptr_t addr;
+  for (addr = la; addr < la+size; la += PGSIZE) {
+    struct Page *ppage = NULL;
+		uintptr_t offset = addr - la;
+
+		switch(use_pa) {
+			case 0:
+				ppage = LIST_FIRST(&page_free_list);
+				break;
+			case 1:
+				ppage = pa2page(pa + addr - la);
+				break;
+			case 2:
+				offset = 0;
+			default:
+				break;
+		}
+
+		if(ppage) LIST_REMOVE(ppage, pp_link);
+
+		pte_t *pte = pgdir_walk(pgdir, (const void*)addr, 1);
+    pte[0] = (pa + offset) | perm;
   }
 }
 
