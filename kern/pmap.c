@@ -216,7 +216,7 @@ i386_vm_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
-	map_la2pa(boot_pgdir, UPAGES, PTSIZE, 0, PTE_U | PTE_P, 0);
+	map_la2pa(boot_pgdir, UPAGES, PTSIZE, 0, PTE_U | PTE_P, MAP_LA2PA_IGNORE_PHYS_ADDR);
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -229,8 +229,8 @@ i386_vm_init(void)
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
-	map_la2pa(boot_pgdir, KSTACKTOP - KSTKSIZE, KSTKSIZE, 0, PTE_W | PTE_P, 0);
-	map_la2pa(boot_pgdir, KSTACKTOP - PTSIZE, PTSIZE - KSTKSIZE, 0, 0, 2);
+	map_la2pa(boot_pgdir, KSTACKTOP - KSTKSIZE, KSTKSIZE, 0, PTE_W | PTE_P, MAP_LA2PA_IGNORE_PHYS_ADDR);
+	map_la2pa(boot_pgdir, KSTACKTOP - PTSIZE, PTSIZE - KSTKSIZE, 0, 0, MAP_LA2PA_PIN_PHYS_ADDR);
 
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE. 
@@ -240,7 +240,7 @@ i386_vm_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
-	map_la2pa(boot_pgdir, KERNBASE, 0xFFFFFFFF - KERNBASE, 0, PTE_W | PTE_P, 1);
+	map_la2pa(boot_pgdir, KERNBASE, 0xFFFFFFFF - KERNBASE, 0, PTE_W | PTE_P, MAP_LA2PA_USE_PHYS_ADDR);
 
 	// Check that the initial page directory has been set up correctly.
 	check_boot_pgdir();
@@ -584,24 +584,24 @@ page_decref(struct Page* pp)
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
-  DPRINTF("pgdir_walk(%x, %x, %d)\n", pgdir, va, create);
+  // DPRINTF("pgdir_walk(%x, %x, %d)\n", pgdir, va, create);
   // Fill this function in
   pte_t *pte;
 
   if (create) {
     pte = pgdir_walk(pgdir, va, 0);
     if (pte) {
-      DPRINTF("pgdir_walk returning %x\n", pte);
+      // DPRINTF("pgdir_walk returning %x\n", pte);
       return pte;
     }
     struct Page *ppage;
     int ret = page_alloc(&ppage);
     if (ret) {
-      DPRINTF("pgdir_walk returning NULL\n");
+      // DPRINTF("pgdir_walk returning NULL\n");
       return NULL;
     }
     physaddr_t paddr = page2pa(ppage);
-    DPRINTF("pgdir_walk::paddr: %x\n", paddr);
+    // DPRINTF("pgdir_walk::paddr: %x\n", paddr);
 
     pgdir[PDX(va)] = paddr | PTE_U | PTE_W | PTE_P;
     // Set reference counter to 1.
@@ -615,23 +615,23 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
     // Zero out the page's contents
     memset((void*)pte, 0, PGSIZE);
 
-    DPRINTF("pgdir_walk: pte[%d] = %x, pte: %x, pgdir: %x\n", PTX(va), pte[PTX(va)], pte, pgdir);
+    // DPRINTF("pgdir_walk: pte[%d] = %x, pte: %x, pgdir: %x\n", PTX(va), pte[PTX(va)], pte, pgdir);
 
-    DPRINTF("pgdir_walk returning previous call's return\n");
+    // DPRINTF("pgdir_walk returning previous call's return\n");
     return pte + PTX(va);
   }
   else {
     pgdir = &pgdir[PDX(va)];
     if (!(*pgdir & PTE_P)) {
-      DPRINTF("pgdir_walk returning NULL\n");
+      // DPRINTF("pgdir_walk returning NULL\n");
       return NULL;
     }
     pte = (pte_t*) KADDR(PTE_ADDR(*pgdir));
-    DPRINTF("pgdir_walk returning %x\n", &pte[PTX(va)]);
+    // DPRINTF("pgdir_walk returning %x\n", &pte[PTX(va)]);
     return pte + PTX(va);
   }
 
-  DPRINTF("pgdir_walk returning NULL\n");
+  // DPRINTF("pgdir_walk returning NULL\n");
   return NULL;
 }
 
@@ -722,7 +722,7 @@ static void
 boot_map_segment(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int perm)
 {
   uintptr_t addr;
-  for (addr = la; addr < la+size; la += PGSIZE) {
+  for (addr = la; addr < la+size; addr += PGSIZE) {
     struct Page *ppage = pa2page(pa + addr - la);
     LIST_REMOVE(ppage, pp_link);
     pte_t *pte = pgdir_walk(pgdir, (const void*)addr, 1);
@@ -741,8 +741,10 @@ boot_map_segment(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int per
 static void
 map_la2pa(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int perm, int use_pa)
 {
+  DPRINTF("map_la2pa(%x, %08x, %d, %x, %d, %d)\n", pgdir, la, size, pa, perm, use_pa);
+
   uintptr_t addr;
-  for (addr = la; addr < la+size; la += PGSIZE) {
+  for (addr = la; addr < la+size; addr += PGSIZE) {
     struct Page *ppage = NULL;
 		uintptr_t offset = addr - la;
 
