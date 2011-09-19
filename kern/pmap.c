@@ -490,7 +490,7 @@ page_init(void)
 	}
 
 	no_boot_alloc = 1;
-	cprintf("Done with page_init(). Initialized %d/%d pages\n", ctr, i);
+	DPRINTF("Done with page_init(). Initialized %d/%d pages\n", ctr, i);
 
 }
 
@@ -581,26 +581,26 @@ page_decref(struct Page* pp)
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
-  cprintf("pgdir_walk(%x, %x, %d)\n", pgdir, va, create);
+  DPRINTF("pgdir_walk(%x, %x, %d)\n", pgdir, va, create);
   // Fill this function in
   pte_t *pte;
 
   if (create) {
     pte = pgdir_walk(pgdir, va, 0);
     if (pte) {
-      cprintf("pgdir_walk returning %x\n", pte);
+      DPRINTF("pgdir_walk returning %x\n", pte);
       return pte;
     }
     struct Page *ppage;
     int ret = page_alloc(&ppage);
     if (ret) {
-      cprintf("pgdir_walk returning NULL\n");
+      DPRINTF("pgdir_walk returning NULL\n");
       return NULL;
     }
     physaddr_t paddr = page2pa(ppage);
     DPRINTF("pgdir_walk::paddr: %x\n", paddr);
 
-    pgdir[PDX(va)] = paddr | PTE_U |PTE_W | PTE_P;
+    pgdir[PDX(va)] = paddr | PTE_U | PTE_W | PTE_P;
     // Set reference counter to 1.
     ppage->pp_ref = 1;
 
@@ -612,24 +612,23 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
     // Zero out the page's contents
     memset((void*)pte, 0, PGSIZE);
 
-    // pte[PTX(va)] = PADDR(va) | PTE_U |PTE_W | PTE_P;
     DPRINTF("pgdir_walk: pte[%d] = %x, pte: %x, pgdir: %x\n", PTX(va), pte[PTX(va)], pte, pgdir);
 
-    cprintf("pgdir_walk returning previous call's return\n");
+    DPRINTF("pgdir_walk returning previous call's return\n");
     return pte + PTX(va);
   }
   else {
     pgdir = &pgdir[PDX(va)];
     if (!(*pgdir & PTE_P)) {
-      cprintf("pgdir_walk returning NULL\n");
+      DPRINTF("pgdir_walk returning NULL\n");
       return NULL;
     }
     pte = (pte_t*) KADDR(PTE_ADDR(*pgdir));
-    cprintf("pgdir_walk returning %x\n", &pte[PTX(va)]);
+    DPRINTF("pgdir_walk returning %x\n", &pte[PTX(va)]);
     return pte + PTX(va);
   }
 
-  cprintf("pgdir_walk returning NULL\n");
+  DPRINTF("pgdir_walk returning NULL\n");
   return NULL;
 }
 
@@ -664,7 +663,7 @@ page_incref(struct Page *pp) {
 int
 page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm) 
 {
-  cprintf("page_insert(%x, %x, %x, %d)\n", pgdir, pp, va, perm);
+	DPRINTF("page_insert(%x, %x, %x, %d)\n", pgdir, pp, va, perm);
 	struct Page *pprev;
 	pte_t *pte; 
 
@@ -672,13 +671,13 @@ page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm)
 	int tlb_invalid = 0;
 
 	tlb_invalidate(pgdir, va);
-	page_addr = page2pa(pp) | PTE_P | PTE_W | PTE_U | perm;
+	page_addr = page2pa(pp) | PTE_P | PTE_W | perm;
 	pte = pgdir_walk(pgdir, va, 0);
 
 	if(!pte) {
 		pte = pgdir_walk(pgdir, va, 1);
 		if(!pte) {
-		  cprintf("page_insert returning: -E_NO_MEM\n");
+		  DPRINTF("page_insert returning: -E_NO_MEM\n");
 		  return -E_NO_MEM;
 		}
 
@@ -689,7 +688,10 @@ page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm)
 		pprev = pa2page(*pte);
 
 		if(pp == pprev) {
-			// this va was mapped to this page wonly ...
+		  // this va was mapped to this page wonly ...
+		  // The permissions may change. handle this case.
+		  pte[0] = page_addr;
+
 		} else {
 			DPRINTF("page_insert::removing page at VA: %x\n", va);
 			page_remove(pgdir, va);
@@ -699,7 +701,7 @@ page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm)
 	}
 
 	tlb_invalidate(pgdir, va);
-	cprintf("page_insert returning: 0 (SUCCESS)\n");
+	DPRINTF("page_insert returning: 0 (SUCCESS)\n");
 	return 0;
 }
 
