@@ -215,8 +215,8 @@ i386_vm_init(void)
 	//    - the new image at UPAGES -- kernel R, user R
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
-	// Your code goes here:
-	map_la2pa(boot_pgdir, UPAGES, PTSIZE, 0, PTE_U | PTE_P, MAP_LA2PA_IGNORE_PHYS_ADDR);
+	// TODO: permissions of 'pages itself'
+	map_la2pa(boot_pgdir, UPAGES, PTSIZE, PADDR(pages), PTE_U | PTE_P, MAP_LA2PA_USE_PHYS_ADDR);
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -390,8 +390,13 @@ check_boot_pgdir(void)
 
 	// check pages array
 	n = ROUNDUP(npage*sizeof(struct Page), PGSIZE);
-	for (i = 0; i < n; i += PGSIZE)
-		assert(check_va2pa(pgdir, UPAGES + i) == PADDR(pages) + i);
+	for (i = 0; i < n; i += PGSIZE) {
+		physaddr_t va2pa = check_va2pa(pgdir, UPAGES + i);
+		physaddr_t ppaddr = PADDR(pages) + i;
+		cprintf("check_boot_pgdir::check_va2pa: %x, pages: %x\n", va2pa, ppaddr);
+		assert(va2pa == ppaddr);
+		//assert(check_va2pa(pgdir, UPAGES + i) == PADDR(pages) + i);
+	}
 	
 
 	// check phys mem
@@ -747,16 +752,21 @@ map_la2pa(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int perm, int 
   for (addr = la; addr < la+size; addr += PGSIZE) {
     struct Page *ppage = NULL;
 		uintptr_t offset = addr - la;
+		uintptr_t paddr = pa + offset;
 
 		switch(use_pa) {
-			case 0:
+			case MAP_LA2PA_IGNORE_PHYS_ADDR:
 				ppage = LIST_FIRST(&page_free_list);
+				paddr = page2pa(ppage);
+				DPRINTF("mapping free page %x, phy addr %x, with idx %d\n", ppage, paddr, ppage - pages);
 				break;
-			case 1:
-				ppage = pa2page(pa + addr - la);
+			case MAP_LA2PA_USE_PHYS_ADDR:
+				DPRINTF("getting page for paddr %x (la %x, offset %d)\n", paddr, addr, offset/PGSIZE);
+				ppage = pa2page(paddr);
 				break;
-			case 2:
+			case MAP_LA2PA_PIN_PHYS_ADDR:
 				offset = 0;
+				break;
 			default:
 				break;
 		}
@@ -764,7 +774,7 @@ map_la2pa(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int perm, int 
 		if(ppage) LIST_REMOVE(ppage, pp_link);
 
 		pte_t *pte = pgdir_walk(pgdir, (const void*)addr, 1);
-    pte[0] = (pa + offset) | perm;
+    pte[0] = paddr | perm;
   }
 }
 

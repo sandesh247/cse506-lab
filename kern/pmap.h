@@ -77,8 +77,10 @@ page2pa(struct Page *pp)
 static inline struct Page*
 pa2page(physaddr_t pa)
 {
-	if (PPN(pa) >= npage)
+	if (PPN(pa) >= npage) {
+		cprintf("pa2page called with addr %x, which is index %d of %d\n", pa, PPN(pa), npage);
 		panic("pa2page called with invalid pa");
+	}
 	return &pages[PPN(pa)];
 }
 
