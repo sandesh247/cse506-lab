@@ -491,7 +491,6 @@ page_init(void)
 
 	no_boot_alloc = 1;
 	DPRINTF("Done with page_init(). Initialized %d/%d pages\n", ctr, i);
-
 }
 
 //
@@ -718,7 +717,14 @@ page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm)
 static void
 boot_map_segment(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int perm)
 {
-	// Fill this function in
+  // Fill this function in
+  uintptr_t addr;
+  for (addr = la; addr < la+size; la += PGSIZE) {
+    struct Page *ppage = pa2page(pa);
+    LIST_REMOVE(ppage, pp_link);
+    pte_t *pte = pgdir_walk(pgdir, (const void*)addr, 1);
+    pte[0] = (pa + addr - la) | PTE_P | perm;
+  }
 }
 
 //
@@ -743,12 +749,10 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
   if (pte_store) {
     *pte_store = pte;
   }
-	
-	if(*pte & PTE_P) {
-		return pa2page(PTE_ADDR(*pte));
-	}
-
-	return NULL;
+  if(*pte & PTE_P) {
+    return pa2page(PTE_ADDR(*pte));
+  }
+  return NULL;
 }
 
 //
