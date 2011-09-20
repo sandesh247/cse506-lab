@@ -229,7 +229,7 @@ i386_vm_init(void)
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
-	map_la2pa(boot_pgdir, KSTACKTOP - KSTKSIZE, KSTKSIZE, 0, PTE_W | PTE_P, MAP_LA2PA_IGNORE_PHYS_ADDR);
+	map_la2pa(boot_pgdir, KSTACKTOP - KSTKSIZE, KSTKSIZE, PADDR(bootstack), PTE_W | PTE_P, MAP_LA2PA_USE_PHYS_ADDR);
 	map_la2pa(boot_pgdir, KSTACKTOP - PTSIZE, PTSIZE - KSTKSIZE, 0, 0, MAP_LA2PA_PIN_PHYS_ADDR);
 
 	//////////////////////////////////////////////////////////////////////
@@ -400,8 +400,12 @@ check_boot_pgdir(void)
 	
 
 	// check phys mem
-	for (i = 0; i < npage * PGSIZE; i += PGSIZE)
-		assert(check_va2pa(pgdir, KERNBASE + i) == i);
+	for (i = 0; i < npage * PGSIZE; i += PGSIZE) {
+	  if (check_va2pa(pgdir, KERNBASE + i) != i) {
+	    DPRINTF("check_va2pa(pgdir, KERNBASE + i): %u, i: %u\n", check_va2pa(pgdir, KERNBASE + i), i);
+	  }
+	  assert(check_va2pa(pgdir, KERNBASE + i) == i);
+	}
 
 	// check kernel stack
 	for (i = 0; i < KSTKSIZE; i += PGSIZE)
@@ -443,7 +447,7 @@ check_va2pa(pde_t *pgdir, uintptr_t va)
 	  DPRINTF("[1] check_va2pa returning NULL\n");
 	  return ~0;
 	}
-	DPRINTF("check_va2pa::*pgdir: %x\n", *pgdir);
+	//DPRINTF("check_va2pa::*pgdir: %x\n", *pgdir);
 
 	p = (pte_t*) KADDR(PTE_ADDR(*pgdir));
 	if (!(p[PTX(va)] & PTE_P)) {
@@ -749,20 +753,26 @@ map_la2pa(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int perm, int 
   DPRINTF("map_la2pa(%x, %08x, %d, %x, %d, %d)\n", pgdir, la, size, pa, perm, use_pa);
 
   uintptr_t addr;
-  for (addr = la; addr < la+size; addr += PGSIZE) {
+  int ctr = 0;
+  for (addr = la; addr < la+size && addr + PGSIZE > addr; addr += PGSIZE) {
     struct Page *ppage = NULL;
 		uintptr_t offset = addr - la;
 		uintptr_t paddr = pa + offset;
 
+		if (++ctr == PGSIZE) {
+		  DPRINTF("addr: %u, pa: %u\n", addr, paddr);
+		  ctr = 0;
+		}
+
 		switch(use_pa) {
 			case MAP_LA2PA_IGNORE_PHYS_ADDR:
-				ppage = LIST_FIRST(&page_free_list);
-				paddr = page2pa(ppage);
-				DPRINTF("mapping free page %x, phy addr %x, with idx %d\n", ppage, paddr, ppage - pages);
+			        // ppage = LIST_FIRST(&page_free_list);
+			        // paddr = page2pa(ppage);
+			        DPRINTF("mapping free page %x, phy addr %x, with idx %d\n", ppage, paddr, ppage - pages);
 				break;
 			case MAP_LA2PA_USE_PHYS_ADDR:
-				DPRINTF("getting page for paddr %x (la %x, offset %d)\n", paddr, addr, offset/PGSIZE);
-				ppage = pa2page(paddr);
+			        // DPRINTF("getting page for paddr %x (la %x, offset %d)\n", paddr, addr, offset/PGSIZE);
+				// ppage = pa2page(paddr);
 				break;
 			case MAP_LA2PA_PIN_PHYS_ADDR:
 				offset = 0;
@@ -771,10 +781,10 @@ map_la2pa(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int perm, int 
 				break;
 		}
 
-		if(ppage) LIST_REMOVE(ppage, pp_link);
+		// if(ppage) LIST_REMOVE(ppage, pp_link);
 
 		pte_t *pte = pgdir_walk(pgdir, (const void*)addr, 1);
-    pte[0] = paddr | perm;
+		pte[0] = (paddr | perm);
   }
 }
 
