@@ -95,10 +95,6 @@ pte_t *pgdir_walk(pde_t *pgdir, const void *va, int create);
 #define DPRINTF cprintf
 // #define DPRINTF //
 
-#define MAP_LA2PA_IGNORE_PHYS_ADDR 0
-#define MAP_LA2PA_USE_PHYS_ADDR 1
-#define MAP_LA2PA_PIN_PHYS_ADDR 2
-
 
 void dump_pages(int key);
 

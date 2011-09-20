@@ -216,7 +216,7 @@ i386_vm_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// TODO: permissions of 'pages itself'
-	map_la2pa(boot_pgdir, UPAGES, PTSIZE, PADDR(pages), PTE_U | PTE_P, MAP_LA2PA_USE_PHYS_ADDR);
+	boot_map_segment(boot_pgdir, UPAGES, PTSIZE, PADDR(pages), PTE_U | PTE_P);
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -229,8 +229,8 @@ i386_vm_init(void)
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
-	map_la2pa(boot_pgdir, KSTACKTOP - KSTKSIZE, KSTKSIZE, PADDR(bootstack), PTE_W | PTE_P, MAP_LA2PA_USE_PHYS_ADDR);
-	map_la2pa(boot_pgdir, KSTACKTOP - PTSIZE, PTSIZE - KSTKSIZE, 0, 0, MAP_LA2PA_PIN_PHYS_ADDR);
+	boot_map_segment(boot_pgdir, KSTACKTOP - KSTKSIZE, KSTKSIZE, PADDR(bootstack), PTE_W | PTE_P);
+	boot_map_segment(boot_pgdir, KSTACKTOP - PTSIZE, PTSIZE - KSTKSIZE, 0, 0);
 
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE. 
@@ -240,7 +240,7 @@ i386_vm_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
-	map_la2pa(boot_pgdir, KERNBASE, 0xFFFFFFFF - KERNBASE, 0, PTE_W | PTE_P, MAP_LA2PA_USE_PHYS_ADDR);
+	boot_map_segment(boot_pgdir, KERNBASE, 0xFFFFFFFF - KERNBASE, 0, PTE_W | PTE_P);
 
 	// Check that the initial page directory has been set up correctly.
 	check_boot_pgdir();
@@ -731,62 +731,12 @@ static void
 boot_map_segment(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int perm)
 {
   uintptr_t addr;
-  for (addr = la; addr < la+size; addr += PGSIZE) {
-    struct Page *ppage = pa2page(pa + addr - la);
-    LIST_REMOVE(ppage, pp_link);
+  for (addr = la; addr < la+size && addr < addr + PGSIZE; addr += PGSIZE) {
     pte_t *pte = pgdir_walk(pgdir, (const void*)addr, 1);
-    pte[0] = (pa + addr - la) | PTE_P | perm;
+    pte[0] = (pa + addr - la) | perm;
   }
 }
 
-// Maps a linear address to a physical address
-// Map [la, la+size) of linear address space to physical [pa, pa+size)
-// in the page table rooted at pgdir.  Size is a multiple of PGSIZE.
-//
-// The variable use_pa determines how the physical address pa is used.
-// pa == 0: the physical address is not used. Pages are taken off the free list.
-// pa == 1: the page corresponding to the physical address is used
-// pa == 2: the physical address is used as-is. Useful to clear linear addresses.
-static void
-map_la2pa(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int perm, int use_pa)
-{
-  DPRINTF("map_la2pa(%x, %08x, %d, %x, %d, %d)\n", pgdir, la, size, pa, perm, use_pa);
-
-  uintptr_t addr;
-  int ctr = 0;
-  for (addr = la; addr < la+size && addr + PGSIZE > addr; addr += PGSIZE) {
-    struct Page *ppage = NULL;
-		uintptr_t offset = addr - la;
-		uintptr_t paddr = pa + offset;
-
-		if (++ctr == PGSIZE) {
-		  DPRINTF("addr: %u, pa: %u\n", addr, paddr);
-		  ctr = 0;
-		}
-
-		switch(use_pa) {
-			case MAP_LA2PA_IGNORE_PHYS_ADDR:
-			        // ppage = LIST_FIRST(&page_free_list);
-			        // paddr = page2pa(ppage);
-			        DPRINTF("mapping free page %x, phy addr %x, with idx %d\n", ppage, paddr, ppage - pages);
-				break;
-			case MAP_LA2PA_USE_PHYS_ADDR:
-			        // DPRINTF("getting page for paddr %x (la %x, offset %d)\n", paddr, addr, offset/PGSIZE);
-				// ppage = pa2page(paddr);
-				break;
-			case MAP_LA2PA_PIN_PHYS_ADDR:
-				offset = 0;
-				break;
-			default:
-				break;
-		}
-
-		// if(ppage) LIST_REMOVE(ppage, pp_link);
-
-		pte_t *pte = pgdir_walk(pgdir, (const void*)addr, 1);
-		pte[0] = (paddr | perm);
-  }
-}
 
 //
 // Return the page mapped at virtual address 'va'.
