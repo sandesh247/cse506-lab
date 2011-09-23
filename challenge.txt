@@ -1,0 +1,9 @@
+showmappings: Shows mappings for a virtual address range and displays
+the physical page address(es) that the virtual address(es) map to.
+
+chperm: Changes permissions of a range of virtual addresses.
+
+dumpmem: Dumps the contents of a range of virtual addresses as 8-byte
+hexadecimal integers, with 6 on a single line. Displays 0xffffffff if
+the mapping doesn't exist.
+

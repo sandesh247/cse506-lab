@@ -270,7 +270,7 @@ mon_dumpmem(int argc, char **argv, struct Trapframe *tf) {
 	    while (va <= virt_start + sizeof(uint32_t)*bs) {
 		uint32_t pa = ROUNDDOWN(va, PGSIZE);
 		uint32_t *pte = pgdir_walk(boot_pgdir, (const void*)pa, 0);
-		uint32_t data = 0;
+		uint32_t data = -1;
 		if (pte && PTE_ADDR(*pte)) {
 		    data = ((uint32_t*)KADDR(PTE_ADDR(*pte)))[(va - pa) / sizeof(uint32_t)];
 		}

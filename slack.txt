@@ -1,6 +1,10 @@
 Lab partners:
 Sandesh Singh & Dhruv Matani
 
+Note: Remember to mutate the line for late hours so that the script is
+not confused and that there is only 1 entry of the specified
+format. That entry should be for the current assignment being
+submitted.
 
 
 +------+
@@ -19,8 +23,9 @@ ex1.c is in lab1/ex1.c
 | Lab2 |
 +------+
 
-Late hours for Lab1: 0
 Late hours total: 0
+
+late hours taken: 0
 
 Ex.5.3: The 4MiB mapping is required since we should maintain the same
 addresses for EIP to point to a valid instruction in memory. We think
