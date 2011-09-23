@@ -10,6 +10,7 @@
 #include <kern/console.h>
 #include <kern/monitor.h>
 #include <kern/kdebug.h>
+#include <kern/pmap.h>
 
 #define CMDBUF_SIZE	80	// enough for one VGA text line
 
@@ -25,6 +26,7 @@ static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
 	{ "backtrace", "Display backtrace information", mon_backtrace },
+	{ "page_status", "Display the status of a physical page", mon_page_status },
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -89,6 +91,54 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
   return 0;
 }
 
+uint32_t parse_hex(char *str) {
+	assert(str);
+
+	uint32_t res = 0, pow16 = 1;
+
+	char *loc = str;
+	while(*loc) ++loc;
+
+	while(loc != str) {
+	  char c = *(--loc);
+
+		uint32_t d;
+
+		if(c >= '0' && c <= '9') {
+			d = c - '0';
+		} else if(c >= 'a' && c <= 'f') {
+			d = 10 + c - 'a';
+		} else if(c >= 'A' && c <= 'F') {
+			d = 10 + c - 'A';
+		} else {
+			return res;
+		}
+
+		res += (d * pow16);
+		pow16 = pow16 << 4;
+	}
+
+	return res;
+}
+
+int
+mon_page_status(int argc, char **argv, struct Trapframe *tf)
+{
+	if(argc != 2) {
+		cprintf("usage: page_status <physical addr>\n");
+		return -1;
+	}
+
+	struct Page* ipp = pa2page(parse_hex(argv[1]));
+
+	if(ipp) {
+		cprintf("Index %d, Ref count: %d.\n", page2ppn(ipp), ipp->pp_ref);
+	} else {
+		cprintf("Page not found.\n");
+	}
+
+	return 0;
+}
 
 
 /***** Kernel monitor command interpreter *****/
