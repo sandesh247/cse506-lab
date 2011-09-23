@@ -210,30 +210,56 @@ mon_showmappings(int argc, char **argv, struct Trapframe *tf) {
 
 int
 mon_chperm(int argc, char **argv, struct Trapframe *tf) {
-	if(argc != 3) {
-		cprintf("usage: chperm <virtual address start> <virtual address end>\n");
+	if(argc != 4) {
+		cprintf("usage: chperm <virtual address start> <virtual address end> <permission bits (hex)>\n");
 		return -1;
 	}
 
 	uint32_t virt_start = ROUNDDOWN(parse_hex(argv[1]), PGSIZE);
 	uint32_t virt_end   = ROUNDDOWN(parse_hex(argv[2]), PGSIZE);
+	uint32_t perms      = parse_hex(argv[3]);
 
-	cprintf("VS, VE: %x, %x\n", virt_start, virt_end);
-
-
-	cprintf("Virtual Address, Physical Address\n");
-	cprintf("---------------------------------\n");
+	uint32_t ctr = 0;
 	for (; virt_start <= virt_end; virt_start += PGSIZE) {
 	    uint32_t *pte = pgdir_walk(boot_pgdir, (const void*)virt_start, 0);
-	    cprintf(    "0x%08x     , "  "0x%08x\n", virt_start, pte ? PTE_ADDR(*pte) : 0);
+	    if (pte) {
+		*pte |= perms;
+		++ctr;
+	    }
 	}
+	cprintf("Changed permissions for %d pages\n", ctr);
 
 	return 0;
 }
 
 int
 mon_dumpmem(int argc, char **argv, struct Trapframe *tf) {
-    return 0;
+	if(argc != 3) {
+		cprintf("usage: showmappings <virtual address start> <virtual address end>\n");
+		return -1;
+	}
+
+	uint32_t virt_start = parse_hex(argv[1]);
+	uint32_t virt_end   = parse_hex(argv[2]);
+
+	int bs = 6;
+	for (; virt_start <= virt_end; virt_start += sizeof(uint32_t)*bs) {
+	    uint32_t va = virt_start;
+	    cprintf("0x%08x: ", va);
+	    while (va <= virt_start + sizeof(uint32_t)*bs) {
+		uint32_t pa = ROUNDDOWN(va, PGSIZE);
+		uint32_t *pte = pgdir_walk(boot_pgdir, (const void*)pa, 0);
+		uint32_t data = 0;
+		if (pte && PTE_ADDR(*pte)) {
+		    data = ((uint32_t*)KADDR(PTE_ADDR(*pte)))[(va - pa) / sizeof(uint32_t)];
+		}
+		cprintf("0x%08x  ", data);
+		va += sizeof(uint32_t);
+	    }
+	    cprintf("\n");
+	}
+
+	return 0;
 }
 
 
