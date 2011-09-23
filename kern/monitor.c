@@ -1,3 +1,4 @@
+/* -*- Mode: C; c-basic-offset: 8; indent-tabs-mode: t -*- */
 // Simple command-line kernel monitor useful for
 // controlling the kernel and exploring the system interactively.
 

@@ -1,3 +1,4 @@
+/* -*- Mode: C; c-basic-offset: 8; indent-tabs-mode: t -*- */
 /* See COPYRIGHT for copyright information. */
 
 #ifndef JOS_KERN_PMAP_H

@@ -1,5 +1,6 @@
-/* -*- tab-width: 8 -*- 
- * See COPYRIGHT for copyright information.
+/* -*- Mode: C; c-basic-offset: 8; indent-tabs-mode: t -*- */
+
+/* See COPYRIGHT for copyright information.
  */
 
 #include <inc/x86.h>

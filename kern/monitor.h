@@ -1,3 +1,5 @@
+/* -*- Mode: C; c-basic-offset: 8; indent-tabs-mode: t -*- */
+
 #ifndef JOS_KERN_MONITOR_H
 #define JOS_KERN_MONITOR_H
 #ifndef JOS_KERNEL
