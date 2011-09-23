@@ -6,6 +6,7 @@
 #include <inc/memlayout.h>
 #include <inc/assert.h>
 #include <inc/x86.h>
+#include <inc/types.h>
 
 #include <kern/console.h>
 #include <kern/monitor.h>
@@ -179,9 +180,62 @@ mon_free_page(int argc, char** argv, struct Trapframe *tf) {
 	} else {
 		cprintf("Page not found.\n");
 	}
+	
+	return 0;
+}
+
+int
+mon_showmappings(int argc, char **argv, struct Trapframe *tf) {
+	if(argc != 3) {
+		cprintf("usage: showmappings <virtual address start> <virtual address end>\n");
+		return -1;
+	}
+
+	uint32_t virt_start = ROUNDDOWN(parse_hex(argv[1]), PGSIZE);
+	uint32_t virt_end   = ROUNDDOWN(parse_hex(argv[2]), PGSIZE);
+
+	cprintf("VS, VE: %x, %x\n", virt_start, virt_end);
+
+
+	cprintf("Virtual Address, Physical Address\n");
+	cprintf("---------------------------------\n");
+	for (; virt_start <= virt_end; virt_start += PGSIZE) {
+	    uint32_t *pte = pgdir_walk(boot_pgdir, (const void*)virt_start, 0);
+	    cprintf(    "0x%08x     , "  "0x%08x\n", virt_start, pte ? PTE_ADDR(*pte) : 0);
+	}
 
 	return 0;
 }
+
+
+int
+mon_chperm(int argc, char **argv, struct Trapframe *tf) {
+	if(argc != 3) {
+		cprintf("usage: chperm <virtual address start> <virtual address end>\n");
+		return -1;
+	}
+
+	uint32_t virt_start = ROUNDDOWN(parse_hex(argv[1]), PGSIZE);
+	uint32_t virt_end   = ROUNDDOWN(parse_hex(argv[2]), PGSIZE);
+
+	cprintf("VS, VE: %x, %x\n", virt_start, virt_end);
+
+
+	cprintf("Virtual Address, Physical Address\n");
+	cprintf("---------------------------------\n");
+	for (; virt_start <= virt_end; virt_start += PGSIZE) {
+	    uint32_t *pte = pgdir_walk(boot_pgdir, (const void*)virt_start, 0);
+	    cprintf(    "0x%08x     , "  "0x%08x\n", virt_start, pte ? PTE_ADDR(*pte) : 0);
+	}
+
+	return 0;
+}
+
+int
+mon_dumpmem(int argc, char **argv, struct Trapframe *tf) {
+    return 0;
+}
+
 
 
 /***** Kernel monitor command interpreter *****/
