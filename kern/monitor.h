@@ -7,6 +7,7 @@
 #endif
 
 struct Trapframe;
+extern struct Page_list page_free_list;
 
 // Activate the kernel monitor,
 // optionally providing a trap frame indicating the current state

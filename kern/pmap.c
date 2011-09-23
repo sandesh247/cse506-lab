@@ -24,7 +24,6 @@ physaddr_t boot_cr3;		// Physical address of boot time page directory
 static char* boot_freemem;	// Pointer to next byte of free mem
 
 struct Page* pages;		// Virtual address of physical page array
-static struct Page_list page_free_list;	// Free list of physical pages
 
 int no_boot_alloc = 0; // non-zero if boot_alloc() should not be called now
 

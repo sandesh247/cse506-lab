@@ -48,6 +48,8 @@ extern pde_t *boot_pgdir;
 extern struct Segdesc gdt[];
 extern struct Pseudodesc gdt_pd;
 
+struct Page_list page_free_list;	// Free list of physical pages
+
 void	i386_vm_init();
 void	i386_detect_memory();
 

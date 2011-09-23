@@ -137,10 +137,18 @@ mon_page_status(int argc, char **argv, struct Trapframe *tf)
 		return -1;
 	}
 
-	struct Page* ipp = pa2page(parse_hex(argv[1]));
+	struct Page* pp = pa2page(parse_hex(argv[1])), *ipp;
+	int found = 0;
 
-	if(ipp) {
-		cprintf("Index %d, Ref count: %d.\n", page2ppn(ipp), ipp->pp_ref);
+	LIST_FOREACH(ipp, &page_free_list, pp_link) {
+		if(ipp == pp) {
+			found = 1;
+			break;
+		}
+	}
+
+	if(pp) {
+		cprintf("Index %d, Ref count: %d, page:%x, VA: %x, PA: %x, %s.\n", page2ppn(pp), pp->pp_ref, pp, page2kva(pp), page2pa(pp), (found ? "not allocated" : "allocated"));
 	} else {
 		cprintf("Page not found.\n");
 	}
@@ -164,7 +172,7 @@ mon_free_page(int argc, char** argv, struct Trapframe *tf) {
 
 		// break off mappings
 		uintptr_t va;
-		for(va = 0; va < 0xFFFFFFFF; va += PGSIZE) {
+		for(va = KERNBASE; va < 0xFFFFFFFF - KERNBASE; va += PGSIZE) {
 			pte_t *pte = pgdir_walk(boot_pgdir, (void *) va, 0);
 
 			if(!pte || !PTE_ADDR(*pte)) continue;
@@ -177,7 +185,7 @@ mon_free_page(int argc, char** argv, struct Trapframe *tf) {
 	
 		assert(ipp->pp_ref == 0);
 
-		DPRINTF("Freeing page.");
+		DPRINTF("Freeing page.\n");
 		page_free(ipp);
 	} else {
 		cprintf("Page not found.\n");
@@ -189,18 +197,24 @@ mon_free_page(int argc, char** argv, struct Trapframe *tf) {
 int
 mon_alloc_page(int argc, char** argv, struct Trapframe *tf) {
 
-	if(argc != 2) {
-		cprintf("usage: alloc_page <physical addr>\n");
+	if(argc > 2) {
+		cprintf("usage: alloc_page [<physical addr>]\n");
 		return -1;
 	}
 
-	struct Page* ipp = pa2page(parse_hex(argv[1]));
-
-	if(ipp) {
-		DPRINTF("Allocating page.");
+	struct Page* ipp;
+	
+	if(argc == 2) {
+		ipp = pa2page(parse_hex(argv[1]));
 		LIST_REMOVE(ipp, pp_link);
 	} else {
-		cprintf("Page not found.\n");
+		page_alloc(&ipp);
+	}
+
+	if(ipp) {
+		DPRINTF("Allocated page %x at %x.\n", ipp, page2pa(ipp));
+	} else {
+		cprintf("Could not allocate page.\n");
 	}
 	
 	return 0;
