@@ -27,6 +27,9 @@ static struct Command commands[] = {
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
 	{ "backtrace", "Display backtrace information", mon_backtrace },
 	{ "page_status", "Display the status of a physical page", mon_page_status },
+	{ "showmappings", "Display mappings for a virtual address range", mon_showmappings },
+	{ "chperm", "Change permissions of a virtual address range", mon_chperm },
+	{ "dumpmem", "Dump virtual or physical address ranges", mon_dumpmem },
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
