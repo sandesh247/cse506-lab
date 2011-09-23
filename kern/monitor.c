@@ -30,6 +30,7 @@ static struct Command commands[] = {
 	{ "showmappings", "Display mappings for a virtual address range", mon_showmappings },
 	{ "chperm", "Change permissions of a virtual address range", mon_chperm },
 	{ "dumpmem", "Dump virtual or physical address ranges", mon_dumpmem },
+	{ "free_page", "Free the page at the physical address.", mon_free_page },
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -127,6 +128,7 @@ uint32_t parse_hex(char *str) {
 int
 mon_page_status(int argc, char **argv, struct Trapframe *tf)
 {
+
 	if(argc != 2) {
 		cprintf("usage: page_status <physical addr>\n");
 		return -1;
@@ -136,6 +138,44 @@ mon_page_status(int argc, char **argv, struct Trapframe *tf)
 
 	if(ipp) {
 		cprintf("Index %d, Ref count: %d.\n", page2ppn(ipp), ipp->pp_ref);
+	} else {
+		cprintf("Page not found.\n");
+	}
+
+	return 0;
+}
+
+int
+mon_free_page(int argc, char** argv, struct Trapframe *tf) {
+
+	if(argc != 2) {
+		cprintf("usage: free_page <physical addr>\n");
+		return -1;
+	}
+
+	struct Page* ipp = pa2page(parse_hex(argv[1]));
+
+	if(ipp) {
+		cprintf("Index %d, Ref count: %d.\n", page2ppn(ipp), ipp->pp_ref);
+		void *page_addr = page2kva(ipp);
+
+		// break off mappings
+		uintptr_t va;
+		for(va = 0; va < 0xFFFFFFFF; va += PGSIZE) {
+			pte_t *pte = pgdir_walk(boot_pgdir, (void *) va, 0);
+
+			if(!pte || !PTE_ADDR(*pte)) continue;
+
+			if(KADDR(PTE_ADDR(*pte)) == page_addr) {
+				DPRINTF("Unmapping page from VA %x.\n", va);
+				page_remove(boot_pgdir, (void *) va);	
+			}
+		}
+	
+		assert(ipp->pp_ref == 0);
+
+		DPRINTF("Freeing page.");
+		page_free(ipp);
 	} else {
 		cprintf("Page not found.\n");
 	}

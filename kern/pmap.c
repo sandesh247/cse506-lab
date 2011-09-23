@@ -390,7 +390,7 @@ check_boot_pgdir(void)
 	for (i = 0; i < n; i += PGSIZE) {
 		physaddr_t va2pa = check_va2pa(pgdir, UPAGES + i);
 		physaddr_t ppaddr = PADDR(pages) + i;
-		cprintf("check_boot_pgdir::check_va2pa: %x, pages: %x\n", va2pa, ppaddr);
+		// cprintf("check_boot_pgdir::check_va2pa: %x, pages: %x\n", va2pa, ppaddr);
 		assert(va2pa == ppaddr);
 		//assert(check_va2pa(pgdir, UPAGES + i) == PADDR(pages) + i);
 	}
@@ -399,7 +399,7 @@ check_boot_pgdir(void)
 	// check phys mem
 	for (i = 0; i < npage * PGSIZE; i += PGSIZE) {
 	  if (check_va2pa(pgdir, KERNBASE + i) != i) {
-	    DPRINTF("check_va2pa(pgdir, KERNBASE + i): %u, i: %u\n", check_va2pa(pgdir, KERNBASE + i), i);
+	    // DPRINTF("check_va2pa(pgdir, KERNBASE + i): %u, i: %u\n", check_va2pa(pgdir, KERNBASE + i), i);
 	  }
 	  assert(check_va2pa(pgdir, KERNBASE + i) == i);
 	}
