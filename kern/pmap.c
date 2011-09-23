@@ -239,18 +239,6 @@ i386_vm_init(void)
 	// Your code goes here:
 	boot_map_segment(boot_pgdir, KERNBASE, 0xFFFFFFFF - KERNBASE, 0, PTE_W | PTE_P);
 
-	int i;
-	for(i = KERNBASE; i < ROUNDUP((uint32_t) boot_freemem, PGSIZE); i += PGSIZE) {
-		pte_t *pte, *ptei;
-
-		pte = KADDR(PTE_ADDR(boot_pgdir[PDX(i)]));
-		ptei = pte + PTX(i);
-
-		cprintf("PDE: %x PTE: %x PA: %x\n",
-				pte,
-				ptei, PTE_ADDR(*ptei));
-	}
-
 	// Check that the initial page directory has been set up correctly.
 	check_boot_pgdir();
 
