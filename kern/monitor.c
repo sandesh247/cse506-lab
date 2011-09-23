@@ -32,6 +32,7 @@ static struct Command commands[] = {
 	{ "chperm", "Change permissions of a virtual address range", mon_chperm },
 	{ "dumpmem", "Dump virtual or physical address ranges", mon_dumpmem },
 	{ "free_page", "Free the page at the physical address.", mon_free_page },
+	{ "alloc_page", "Allocate the page at the physical address.", mon_alloc_page },
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -177,6 +178,26 @@ mon_free_page(int argc, char** argv, struct Trapframe *tf) {
 
 		DPRINTF("Freeing page.");
 		page_free(ipp);
+	} else {
+		cprintf("Page not found.\n");
+	}
+	
+	return 0;
+}
+
+int
+mon_alloc_page(int argc, char** argv, struct Trapframe *tf) {
+
+	if(argc != 2) {
+		cprintf("usage: alloc_page <physical addr>\n");
+		return -1;
+	}
+
+	struct Page* ipp = pa2page(parse_hex(argv[1]));
+
+	if(ipp) {
+		DPRINTF("Allocating page.");
+		LIST_REMOVE(ipp, pp_link);
 	} else {
 		cprintf("Page not found.\n");
 	}
