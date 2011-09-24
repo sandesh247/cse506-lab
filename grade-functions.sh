@@ -41,7 +41,7 @@ run () {
 	t0=`date +%s.%N 2>/dev/null`
 	(
 		ulimit -t $timeout
-		exec $qemu -no-kvm -nographic $qemuopts -serial file:jos.out -monitor null -no-reboot $qemuextra
+		exec $qemu -nographic $qemuopts -serial file:jos.out -monitor null -no-reboot $qemuextra
 	) >$out 2>$err &
 	PID=$!
 
@@ -64,6 +64,10 @@ run () {
 		# Make sure QEMU is dead.  On OS X, exiting gdb
 		# doesn't always exit QEMU.
 		kill $PID > /dev/null 2>&1
+
+		mv jos.out jos.tmp.out
+		cat -v jos.tmp.out | sed s/\\^[^m]*m//g > jos.out
+		rm jos.tmp.out
 	fi
 }
 
