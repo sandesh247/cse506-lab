@@ -73,7 +73,12 @@ envid2env(envid_t envid, struct Env **env_store, bool checkperm)
 void
 env_init(void)
 {
-	// LAB 3: Your code here.
+	int e;
+	for(e = NENV - 1; e >= 0; --e) {
+		envs[e]->env_status = ENV_FREE;
+		envs[e]->env_id = 0;
+		LIST_INSERT_HEAD(&env_free_list, &envs[e], env_link);
+	}
 }
 
 //
