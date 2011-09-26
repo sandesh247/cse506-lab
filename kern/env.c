@@ -120,6 +120,14 @@ env_setup_vm(struct Env *e)
 	//    - The functions in kern/pmap.h are handy.
 
 	// LAB 3: Your code here.
+	page_initpp(p);
+	page_incref(p);
+	e->env_pgdir = page2kva(p);
+	e->env_cr3 = page2pa(p);
+
+	boot_map_segment(&(e->env_pgdir), 0, UTOP, 0, 0);
+
+	// TODO: Map remaining memory
 
 	// VPT and UVPT map the env's own page table, with
 	// different permissions.
