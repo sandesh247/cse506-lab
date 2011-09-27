@@ -1,3 +1,4 @@
+/* -*- c-basic-offset: 8; indent-tabs-mode: t -*- */
 /* See COPYRIGHT for copyright information. */
 
 #include <inc/x86.h>
@@ -125,6 +126,7 @@ env_setup_vm(struct Env *e)
 	e->env_pgdir = page2kva(p);
 	e->env_cr3 = page2pa(p);
 
+        // TODO: Zero out & initialize pgdir
 	// TODO: Map memory
 
 	// VPT and UVPT map the env's own page table, with
@@ -259,10 +261,13 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 	// Hints: 
 	//  Load each program segment into virtual memory
 	//  at the address specified in the ELF section header.
-	//  You should only load segments with ph->p_type == ELF_PROG_LOAD.
-	//  Each segment's virtual address can be found in ph->p_va
+	//
+	//  [1] You should only load segments with ph->p_type == ELF_PROG_LOAD.
+	// 
+	//  [2] Each segment's virtual address can be found in ph->p_va
 	//  and its size in memory can be found in ph->p_memsz.
-	//  The ph->p_filesz bytes from the ELF binary, starting at
+	// 
+	//  [3] The ph->p_filesz bytes from the ELF binary, starting at
 	//  'binary + ph->p_offset', should be copied to virtual address
 	//  ph->p_va.  Any remaining memory bytes should be cleared to zero.
 	//  (The ELF header should have ph->p_filesz <= ph->p_memsz.)
