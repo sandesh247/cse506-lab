@@ -75,8 +75,8 @@ env_init(void)
 {
 	int e;
 	for(e = NENV - 1; e >= 0; --e) {
-		envs[e]->env_status = ENV_FREE;
-		envs[e]->env_id = 0;
+		envs[e].env_status = ENV_FREE;
+		envs[e].env_id = 0;
 		LIST_INSERT_HEAD(&env_free_list, &envs[e], env_link);
 	}
 }
@@ -120,14 +120,12 @@ env_setup_vm(struct Env *e)
 	//    - The functions in kern/pmap.h are handy.
 
 	// LAB 3: Your code here.
-	page_initpp(p);
-	page_incref(p);
+	memset(p, 0, sizeof(*p));
+	p->pp_ref = 1;
 	e->env_pgdir = page2kva(p);
 	e->env_cr3 = page2pa(p);
 
-	boot_map_segment(&(e->env_pgdir), 0, UTOP, 0, 0);
-
-	// TODO: Map remaining memory
+	// TODO: Map memory
 
 	// VPT and UVPT map the env's own page table, with
 	// different permissions.
@@ -212,6 +210,25 @@ segment_alloc(struct Env *e, void *va, size_t len)
 	// Hint: It is easier to use segment_alloc if the caller can pass
 	//   'va' and 'len' values that are not page-aligned.
 	//   You should round va down, and round (va + len) up.
+	
+	void 
+		*start = ROUNDDOWN(va, PGSIZE),
+		*end   = ROUNDUP(va + len, PGSIZE);
+
+	uintptr_t mem;
+	for(mem = (uintptr_t) start; mem < (uintptr_t) end; mem += PGSIZE) {
+		// allocate a new page
+		struct Page *newp;
+		int fail = page_alloc(&newp);
+
+		if(fail <0) {
+			// 
+		}
+
+		physaddr_t addr = page2pa(newp);
+		pte_t *pte = pgdir_walk(e->env_pgdir, (const void*) va, 1);
+		pte[0] = addr | PTE_W | PTE_P | PTE_U;
+	}
 }
 
 //
