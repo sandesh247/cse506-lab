@@ -223,8 +223,9 @@ segment_alloc(struct Env *e, void *va, size_t len)
 		struct Page *newp;
 		int fail = page_alloc(&newp);
 
-		if(fail <0) {
-			// 
+		if(fail < 0) {
+			panic("FAILED to allocate a page. We can't expect much more");
+			return;
 		}
 
 		physaddr_t addr = page2pa(newp);
@@ -308,6 +309,26 @@ void
 env_create(uint8_t *binary, size_t size)
 {
 	// LAB 3: Your code here.
+
+	struct Elf *elf = (struct Elf*)binary;
+	struct Proghdr *ph, *eph;
+
+	// is this a valid ELF?
+	if (elf->e_magic != ELF_MAGIC) {
+		panic("Invalid ELF magic. Expected %d, got %d\n", ELF_MAGIC, elf->e_magic);
+		return;
+	}
+
+	// load each program segment (ignores ph flags)
+	ph = (struct Proghdr *) ((uint8_t *) elf + elf->e_phoff);
+	eph = ph + elf->e_phnum;
+	for (; ph < eph; ph++)
+		readseg(ph->p_va, ph->p_memsz, ph->p_offset);
+
+	// call the entry point from the ELF header
+	// note: does not return!
+	((void (*)(void)) (elf->e_entry & 0xFFFFFF))();
+
 }
 
 //
