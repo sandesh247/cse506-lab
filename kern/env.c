@@ -304,12 +304,6 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 
 	// LAB 3: Your code here.
 
-	// Now map one page for the program's initial stack
-	// at virtual address USTACKTOP - PGSIZE.
-
-	// LAB 3: Your code here.
-
-
 	struct Elf *elf = (struct Elf*)binary;
 	struct Proghdr *ph, *eph;
 	struct Secthdr *sh, *esh;
@@ -370,7 +364,12 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 
 	lcr3(boot_pgdir);
 
-	// TODO: Map a page for the application's stack
+	// Now map one page for the program's initial stack
+	// at virtual address USTACKTOP - PGSIZE.
+
+	// LAB 3: Your code here.
+	segment_alloc(e, USTACKTOP - PGSIZE, PGSIZE);
+
 }
 
 //
