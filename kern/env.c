@@ -364,6 +364,9 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 	}
 	*/
 
+	e->env_tf.tf_eip = (elf->e_entry & 0xFFFFFF);
+	assert(e->env_tf.tf_eip != 0);
+
 	lcr3((uint32_t)boot_pgdir);
 
 	// Now map one page for the program's initial stack
