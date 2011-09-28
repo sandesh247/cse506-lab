@@ -322,13 +322,21 @@ env_create(uint8_t *binary, size_t size)
 	// load each program segment (ignores ph flags)
 	ph = (struct Proghdr *) ((uint8_t *) elf + elf->e_phoff);
 	eph = ph + elf->e_phnum;
-	for (; ph < eph; ph++)
-		readseg(ph->p_va, ph->p_memsz, ph->p_offset);
+	for (; ph < eph; ph++) {
+		if (ph->p_type == ELF_PROG_LOAD) {
+			// TODO:
 
-	// ELF_PROG_LOAD
-	// call the entry point from the ELF header
-	// note: does not return!
-	((void (*)(void)) (elf->e_entry & 0xFFFFFF))();
+			// Copy ph->p_memsz bytes from binary +
+			// ph->p_offset into the virtual address
+			// ph->p_va as mapped in the new
+			// program. Check if ph->p_filesz <=
+			// ph->p_memsz for each header entry.
+			// 
+			// Any remaining memory bytes should be
+			// cleared to zero.
+
+		}
+	}
 
 }
 
