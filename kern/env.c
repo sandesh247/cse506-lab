@@ -332,8 +332,6 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 	eph = ph + elf->e_phnum;
 	for (; ph < eph; ph++) {
 		if (ph->p_type == ELF_PROG_LOAD) {
-			// TODO:
-
 			// Copy ph->p_memsz bytes from binary +
 			// ph->p_offset into the virtual address
 			// ph->p_va as mapped in the new
@@ -341,9 +339,13 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 			// ph->p_memsz for each header entry.
 			// 
 			// Any remaining memory bytes should be
-			// cleared to zero. (todo)
+			// cleared to zero.
+
 			assert(ph->p_filesz <= ph->p_memsz);
 			segment_alloc(e, ph->p_va, ph->p_memsz);
+
+			// Zero out the segment
+			memset(ROUNDDOWN(ph->p_va, PGSIZE), 0, ROUNDUP(ph->p_memsz, PGSIZE));
 
 			// Copy the data.
 			memmove(ph->p_va, binary + ph->p_offset, ph->p_filesz);
