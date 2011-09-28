@@ -224,7 +224,12 @@ segment_alloc(struct Env *e, void *va, size_t len)
 		*end   = ROUNDUP(va + len, PGSIZE);
 
 	uintptr_t mem;
-	for(mem = (uintptr_t) start; mem < (uintptr_t) end; mem += PGSIZE) {
+	for (mem = (uintptr_t)start; mem < (uintptr_t)end; mem += PGSIZE) {
+		pte_t *pte = pgdir_walk(e->env_pgdir, (const void*) va, 0);
+		if (pte) {
+			continue;
+		}
+
 		// allocate a new page
 		struct Page *newp;
 		int fail = page_alloc(&newp);
@@ -235,7 +240,7 @@ segment_alloc(struct Env *e, void *va, size_t len)
 		}
 
 		physaddr_t addr = page2pa(newp);
-		pte_t *pte = pgdir_walk(e->env_pgdir, (const void*) va, 1);
+		pte = pgdir_walk(e->env_pgdir, (const void*) va, 1);
 		pte[0] = addr | PTE_W | PTE_P | PTE_U;
 	}
 }
