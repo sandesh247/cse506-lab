@@ -314,7 +314,7 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 		return;
 	}
 
-	lcr3(e->env_pgdir);
+	lcr3((uint32_t)e->env_pgdir);
 
 	// load each program segment (ignores ph flags)
 	ph = (struct Proghdr *) ((uint8_t *) elf + elf->e_phoff);
@@ -331,13 +331,13 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 			// cleared to zero.
 
 			assert(ph->p_filesz <= ph->p_memsz);
-			segment_alloc(e, ph->p_va, ph->p_memsz);
+			segment_alloc(e, (void*)ph->p_va, ph->p_memsz);
 
 			// Zero out the segment
-			memset(ROUNDDOWN(ph->p_va, PGSIZE), 0, ROUNDUP(ph->p_memsz, PGSIZE));
+			memset((void*)ROUNDDOWN(ph->p_va, PGSIZE), 0, ROUNDUP(ph->p_memsz, PGSIZE));
 
 			// Copy the data.
-			memmove(ph->p_va, binary + ph->p_offset, ph->p_filesz);
+			memmove((void*)ph->p_va, binary + ph->p_offset, ph->p_filesz);
 		}
 	}
 
@@ -346,29 +346,31 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 	// but not actually present in the ELF file - i.e., the
 	// program's bss section.
 
+	/*
 	// Load all the ELF sections as well
-	sh = (struct Proghdr *) ((uint8_t *) elf + elf->e_shoff);
+	sh = (struct Secthdr *) ((uint8_t *) elf + elf->e_shoff);
 	esh = sh + elf->e_shnum;
 	for (; sh < esh; sh++) {
-		if (sh->p_type != ELF_SHT_NULL) {
-			assert(ph->p_filesz <= ph->p_memsz);
-			segment_alloc(e, sh->p_va, sh->p_memsz);
+		if (sh->sh_type != ELF_SHT_NULL) {
+			assert(sh->sh_filesz <= sh->sh_memsz);
+			segment_alloc(e, sh->sh_va, sh->sh_memsz);
 
 			// Zero out the segment
-			memset(ROUNDDOWN(sh->p_va, PGSIZE), 0, ROUNDUP(sh->p_memsz, PGSIZE));
+			memset(ROUNDDOWN(sh->sh_va, PGSIZE), 0, ROUNDUP(sh->sh_memsz, PGSIZE));
 
 			// Copy the data.
-			memmove(ah->p_va, binary + sh->p_offset, sh->p_filesz);
+			memmove(ah->sh_va, binary + sh->sh_offset, sh->sh_filesz);
 		}
 	}
+	*/
 
-	lcr3(boot_pgdir);
+	lcr3((uint32_t)boot_pgdir);
 
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
 
 	// LAB 3: Your code here.
-	segment_alloc(e, USTACKTOP - PGSIZE, PGSIZE);
+	segment_alloc(e, (void*)(USTACKTOP - PGSIZE), PGSIZE);
 
 }
 
