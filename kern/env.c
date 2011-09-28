@@ -325,6 +325,7 @@ env_create(uint8_t *binary, size_t size)
 	for (; ph < eph; ph++)
 		readseg(ph->p_va, ph->p_memsz, ph->p_offset);
 
+	// ELF_PROG_LOAD
 	// call the entry point from the ELF header
 	// note: does not return!
 	((void (*)(void)) (elf->e_entry & 0xFFFFFF))();
