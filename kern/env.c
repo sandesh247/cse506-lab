@@ -352,7 +352,7 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 	// but not actually present in the ELF file - i.e., the
 	// program's bss section.
 
-	// Load all the segments
+	// Load all the ELF sections as well
 	sh = (struct Proghdr *) ((uint8_t *) elf + elf->e_shoff);
 	esh = sh + elf->e_shnum;
 	for (; sh < esh; sh++) {
