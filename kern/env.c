@@ -312,6 +312,7 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 
 	struct Elf *elf = (struct Elf*)binary;
 	struct Proghdr *ph, *eph;
+	struct Secthdr *sh, *esh;
 
 	// is this a valid ELF?
 	if (elf->e_magic != ELF_MAGIC) {
@@ -320,12 +321,6 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 	}
 
 	lcr3(e->env_pgdir);
-
-	// TODO: 
-	// At the same time it clears to zero any portions of these segments
-	// that are marked in the program header as being mapped
-	// but not actually present in the ELF file - i.e., the
-	// program's bss section.
 
 	// load each program segment (ignores ph flags)
 	ph = (struct Proghdr *) ((uint8_t *) elf + elf->e_phoff);
@@ -349,6 +344,27 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 
 			// Copy the data.
 			memmove(ph->p_va, binary + ph->p_offset, ph->p_filesz);
+		}
+	}
+
+	// At the same time it clears to zero any portions of these segments
+	// that are marked in the program header as being mapped
+	// but not actually present in the ELF file - i.e., the
+	// program's bss section.
+
+	// Load all the segments
+	sh = (struct Proghdr *) ((uint8_t *) elf + elf->e_shoff);
+	esh = sh + elf->e_shnum;
+	for (; sh < esh; sh++) {
+		if (sh->p_type != ELF_SHT_NULL) {
+			assert(ph->p_filesz <= ph->p_memsz);
+			segment_alloc(e, sh->p_va, sh->p_memsz);
+
+			// Zero out the segment
+			memset(ROUNDDOWN(sh->p_va, PGSIZE), 0, ROUNDUP(sh->p_memsz, PGSIZE));
+
+			// Copy the data.
+			memmove(ah->p_va, binary + sh->p_offset, sh->p_filesz);
 		}
 	}
 
