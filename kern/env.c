@@ -107,26 +107,32 @@ env_setup_vm(struct Env *e)
 	//
 	// Hint:
 	//    - Remember that page_alloc doesn't zero the page.
+	// 
 	//    - The VA space of all envs is identical above UTOP
 	//	(except at VPT and UVPT, which we've set below).
 	//	See inc/memlayout.h for permissions and layout.
 	//	Can you use boot_pgdir as a template?  Hint: Yes.
 	//	(Make sure you got the permissions right in Lab 2.)
+	// 
 	//    - The initial VA below UTOP is empty.
+	// 
 	//    - You do not need to make any more calls to page_alloc.
+	// 
 	//    - Note: In general, pp_ref is not maintained for
 	//	physical pages mapped only above UTOP, but env_pgdir
 	//	is an exception -- you need to increment env_pgdir's
 	//	pp_ref for env_free to work correctly.
+	// 
 	//    - The functions in kern/pmap.h are handy.
 
 	// LAB 3: Your code here.
-	memset(p, 0, sizeof(*p));
 	p->pp_ref = 1;
 	e->env_pgdir = page2kva(p);
 	e->env_cr3 = page2pa(p);
 
-        // TODO: Zero out & initialize pgdir
+        // Initialize pgdir
+	memmove(e->env_pgdir, boot_pgdir, PGSIZE);
+
 	// TODO: Map memory
 
 	// VPT and UVPT map the env's own page table, with
@@ -223,8 +229,8 @@ segment_alloc(struct Env *e, void *va, size_t len)
 		struct Page *newp;
 		int fail = page_alloc(&newp);
 
-		if(fail < 0) {
-			panic("FAILED to allocate a page. We can't expect much more");
+		if (fail < 0) {
+			panic("FAILED to allocate a page (%e). We can't expect much more", fail);
 			return;
 		}
 
@@ -243,6 +249,7 @@ segment_alloc(struct Env *e, void *va, size_t len)
 // This function loads all loadable segments from the ELF binary image
 // into the environment's user memory, starting at the appropriate
 // virtual addresses indicated in the ELF program header.
+// 
 // At the same time it clears to zero any portions of these segments
 // that are marked in the program header as being mapped
 // but not actually present in the ELF file - i.e., the program's bss section.
@@ -296,19 +303,7 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 	// at virtual address USTACKTOP - PGSIZE.
 
 	// LAB 3: Your code here.
-}
 
-//
-// Allocates a new env with env_alloc and loads the named elf
-// binary into it with load_icode.
-// This function is ONLY called during kernel initialization,
-// before running the first user-mode environment.
-// The new env's parent ID is set to 0.
-//
-void
-env_create(uint8_t *binary, size_t size)
-{
-	// LAB 3: Your code here.
 
 	struct Elf *elf = (struct Elf*)binary;
 	struct Proghdr *ph, *eph;
@@ -318,6 +313,14 @@ env_create(uint8_t *binary, size_t size)
 		panic("Invalid ELF magic. Expected %d, got %d\n", ELF_MAGIC, elf->e_magic);
 		return;
 	}
+
+	lcr3(e->env_pgdir);
+
+	// TODO: 
+	// At the same time it clears to zero any portions of these segments
+	// that are marked in the program header as being mapped
+	// but not actually present in the ELF file - i.e., the
+	// program's bss section.
 
 	// load each program segment (ignores ph flags)
 	ph = (struct Proghdr *) ((uint8_t *) elf + elf->e_phoff);
@@ -333,10 +336,31 @@ env_create(uint8_t *binary, size_t size)
 			// ph->p_memsz for each header entry.
 			// 
 			// Any remaining memory bytes should be
-			// cleared to zero.
+			// cleared to zero. (todo)
+			assert(ph->p_filesz <= ph->p_memsz);
+			segment_alloc(e, ph->p_va, ph->p_memsz);
 
+			// Copy the data.
+			memmove(ph->p_va, binary + ph->p_offset, ph->p_filesz);
 		}
 	}
+
+	lcr3(boot_pgdir);
+
+	// TODO: Map a page for the application's stack
+}
+
+//
+// Allocates a new env with env_alloc and loads the named elf
+// binary into it with load_icode.
+// This function is ONLY called during kernel initialization,
+// before running the first user-mode environment.
+// The new env's parent ID is set to 0.
+//
+void
+env_create(uint8_t *binary, size_t size)
+{
+	// LAB 3: Your code here.
 
 }
 
