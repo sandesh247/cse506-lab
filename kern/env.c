@@ -218,15 +218,18 @@ segment_alloc(struct Env *e, void *va, size_t len)
 	// Hint: It is easier to use segment_alloc if the caller can pass
 	//   'va' and 'len' values that are not page-aligned.
 	//   You should round va down, and round (va + len) up.
-	
+
+	DPRINTF("segment_alloc(%x, %x, %u)\n", e, va, len);
+
 	void 
 		*start = ROUNDDOWN(va, PGSIZE),
 		*end   = ROUNDUP(va + len, PGSIZE);
 
 	uintptr_t mem;
 	for (mem = (uintptr_t)start; mem < (uintptr_t)end; mem += PGSIZE) {
-		pte_t *pte = pgdir_walk(e->env_pgdir, (const void*) va, 0);
-		if (pte) {
+		pte_t *pte = pgdir_walk(e->env_pgdir, (const void*)mem, 0);
+		if (pte && (*pte & PTE_P)) {
+			DPRINTF("VA %x is already backed by PA %x\n", mem, PTE_ADDR(*pte));
 			continue;
 		}
 
@@ -240,9 +243,11 @@ segment_alloc(struct Env *e, void *va, size_t len)
 		}
 
 		physaddr_t addr = page2pa(newp);
-		pte = pgdir_walk(e->env_pgdir, (const void*) va, 1);
+		pte = pgdir_walk(e->env_pgdir, (const void*)mem, 1);
+		DPRINTF("VA %x is now backed by physical page at address %x\n", mem, addr);
 		pte[0] = addr | PTE_W | PTE_P | PTE_U;
 	}
+	DPRINTF("segment_alloc::done allocating segments\n");
 }
 
 //
@@ -303,6 +308,7 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 	//  What?  (See env_run() and env_pop_tf() below.)
 
 	// LAB 3: Your code here.
+	cprintf("load_icode(%x, %x, %d)\n", e, binary, size);
 
 	struct Elf *elf = (struct Elf*)binary;
 	struct Proghdr *ph, *eph;
@@ -314,13 +320,17 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 		return;
 	}
 
-	lcr3((uint32_t)e->env_pgdir);
+	cprintf("Before loading CR3 with %u\n", e->env_cr3);
+	lcr3(e->env_cr3);
+	cprintf("After loading CR3 with %u\n", e->env_cr3);
 
 	// load each program segment (ignores ph flags)
 	ph = (struct Proghdr *) ((uint8_t *) elf + elf->e_phoff);
 	eph = ph + elf->e_phnum;
 	for (; ph < eph; ph++) {
 		if (ph->p_type == ELF_PROG_LOAD) {
+			cprintf("Loading ELF header at %x\n", ph);
+
 			// Copy ph->p_memsz bytes from binary +
 			// ph->p_offset into the virtual address
 			// ph->p_va as mapped in the new
@@ -333,9 +343,13 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 			assert(ph->p_filesz <= ph->p_memsz);
 			segment_alloc(e, (void*)ph->p_va, ph->p_memsz);
 
+			DPRINTF("Before memset(%x, 0, %u)\n", ROUNDDOWN(ph->p_va, PGSIZE), ROUNDUP(ph->p_memsz, PGSIZE));
 			// Zero out the segment
+			lcr3(e->env_cr3);
+
 			memset((void*)ROUNDDOWN(ph->p_va, PGSIZE), 0, ROUNDUP(ph->p_memsz, PGSIZE));
 
+			DPRINTF("Before memmove\n");
 			// Copy the data.
 			memmove((void*)ph->p_va, binary + ph->p_offset, ph->p_filesz);
 		}
@@ -367,7 +381,9 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 	e->env_tf.tf_eip = (elf->e_entry & 0xFFFFFF);
 	assert(e->env_tf.tf_eip != 0);
 
-	lcr3((uint32_t)boot_pgdir);
+	cprintf("Before loading CR3 with (boot_pgdir) %u\n", PADDR(boot_pgdir));
+	lcr3(PADDR(boot_pgdir));
+	cprintf("After loading CR3 with (boot_pgdir) %u\n", PADDR(boot_pgdir));
 
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
@@ -504,13 +520,16 @@ env_run(struct Env *e)
 	//	e->env_tf.  Go back through the code you wrote above
 	//	and make sure you have set the relevant parts of
 	//	e->env_tf to sensible values.
-	
+
+	cprintf("About to run %x\n", e);
+
 	if(curenv != e) {
 		curenv = e;
 		++(e->env_runs);
 		lcr3(e->env_cr3);
 	}
 
+	DPRINTF("About to pop Trapframe (%x), EIP: %x\n", &(e->env_tf), e->env_tf.tf_eip);
 	env_pop_tf(&(e->env_tf));
 }
 

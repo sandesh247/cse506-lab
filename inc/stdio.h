@@ -7,6 +7,10 @@
 #define NULL	((void *) 0)
 #endif /* !NULL */
 
+
+#define DPRINTF cprintf
+// #define DPRINTF //
+
 // lib/stdio.c
 void	cputchar(int c);
 int	getchar(void);

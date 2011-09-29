@@ -32,7 +32,10 @@ i386_init(void)
 	i386_vm_init();
 
 	// Lab 3 user environment initialization functions
+        cprintf("Before env_init()\n");
 	env_init();
+        cprintf("After env_init()\n");
+
 	idt_init();
 
 #if defined(TEST)
