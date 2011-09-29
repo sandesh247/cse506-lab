@@ -41,27 +41,27 @@
  * Lab 3: Your code here for generating entry points for the different traps.
  */
 TRAPHANDLER_NOEC(h_divide		, T_DIVIDE)
-TRAPHANDLER_NOEC(h_debug		,	T_DEBUG)
-TRAPHANDLER_NOEC(h_nmi			,	T_NMI)
-TRAPHANDLER_NOEC(h_brkpt		,	T_BRKPT)
-TRAPHANDLER_NOEC(h_oflow		,	T_OFLOW)
-TRAPHANDLER_NOEC(h_bound		,	T_BOUND)
+TRAPHANDLER_NOEC(h_debug		, T_DEBUG)
+TRAPHANDLER_NOEC(h_nmi			, T_NMI)
+TRAPHANDLER_NOEC(h_brkpt		, T_BRKPT)
+TRAPHANDLER_NOEC(h_oflow		, T_OFLOW)
+TRAPHANDLER_NOEC(h_bound		, T_BOUND)
 TRAPHANDLER_NOEC(h_illop		, T_ILLOP)
 TRAPHANDLER_NOEC(h_device		, T_DEVICE)
 
-TRAPHANDLER(h_dblflt				, T_DBLFLT)
-TRAPHANDLER(h_tss						, T_TSS)
-TRAPHANDLER(h_segnp					, T_SEGNP)
-TRAPHANDLER(h_stack					, T_STACK)
-TRAPHANDLER(h_gpflt					, T_GPFLT)
-TRAPHANDLER(h_pgflt					, T_PGFLT)
+TRAPHANDLER(h_dblflt	        	, T_DBLFLT)
+TRAPHANDLER(h_tss			, T_TSS)
+TRAPHANDLER(h_segnp		        , T_SEGNP)
+TRAPHANDLER(h_stack			, T_STACK)
+TRAPHANDLER(h_gpflt			, T_GPFLT)
+TRAPHANDLER(h_pgflt			, T_PGFLT)
 
 TRAPHANDLER_NOEC(t_fperr		, T_FPERR)
-TRAPHANDLER(t_align					, T_ALIGN)
+TRAPHANDLER(t_align			, T_ALIGN)
 TRAPHANDLER_NOEC(t_mchk			, T_MCHK)
-TRAPHANDLER_NOEC(t_simderr	, T_SIMDERR)
-TRAPHANDLER_NOEC(t_syscall	, T_SYSCALL)
-TRAPHANDLER_NOEC(t_default	, T_DEFAULT)
+TRAPHANDLER_NOEC(t_simderr      	, T_SIMDERR)
+TRAPHANDLER_NOEC(t_syscall	        , T_SYSCALL)
+TRAPHANDLER_NOEC(t_default	        , T_DEFAULT)
 
 
 
