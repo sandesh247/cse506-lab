@@ -65,6 +65,8 @@ run () {
 		# doesn't always exit QEMU.
 		kill $PID > /dev/null 2>&1
 
+                // echo -ne "JOS.OUT:\n--------\n"
+                // cat jos.out
 		mv jos.out jos.tmp.out
 		cat -v jos.tmp.out | sed s/\\^[^m]*m//g > jos.out
 		rm jos.tmp.out

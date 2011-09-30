@@ -19,6 +19,27 @@ struct Pseudodesc idt_pd = {
 	sizeof(idt) - 1, (uint32_t) idt
 };
 
+extern void h_divide();
+extern void h_debug();
+extern void h_nmig();
+extern void h_brkptg();
+extern void h_oflowg();
+extern void h_boundg();
+extern void h_illopg();
+extern void h_deviceg();
+extern void h_dblflt();
+extern void h_tss();
+extern void h_segnp();
+extern void h_stack();
+extern void h_gpflt();
+extern void h_pgflt();
+extern void t_fperr();
+extern void t_align();
+extern void t_mchk();
+extern void t_simderr();
+extern void t_syscall();
+extern void t_default();
+
 
 static const char *trapname(int trapno)
 {
@@ -54,11 +75,43 @@ static const char *trapname(int trapno)
 
 
 void
+random_function() {
+    cprintf("random_function()\n");
+}
+
+void
 idt_init(void)
 {
 	extern struct Segdesc gdt[];
 	
+        DPRINTF("idt_init()\n");
+
+        // DPRINTF("addressof(h_divide) = %x\n", h_divide);
+        // DPRINTF("addressof(h_debug) = %x\n", h_debug);
+
 	// LAB 3: Your code here.
+        SETGATE(idt[T_DIVIDE], 1, GD_KT, h_divide, 0);
+        SETGATE(idt[T_DEBUG], 1, GD_KT, h_debug, 0);
+        SETGATE(idt[T_NMI], 1, GD_KT, h_nmig, 0);
+        SETGATE(idt[T_BRKPT], 1, GD_KT, h_brkptg, 0);
+        SETGATE(idt[T_OFLOW], 1, GD_KT, h_oflowg, 0);
+        SETGATE(idt[T_BOUND], 1, GD_KT, h_boundg, 0);
+        SETGATE(idt[T_ILLOP], 1, GD_KT, h_illopg, 0);
+        SETGATE(idt[T_DEVICE], 1, GD_KT, h_deviceg, 0);
+
+        SETGATE(idt[T_DBLFLT], 1, GD_KT, h_dblflt, 0);
+        SETGATE(idt[T_TSS], 1, GD_KT, h_tss, 0);
+        SETGATE(idt[T_SEGNP], 1, GD_KT, h_segnp, 0);
+        SETGATE(idt[T_STACK], 1, GD_KT, h_stack, 0);
+        SETGATE(idt[T_GPFLT], 1, GD_KT, h_gpflt, 0);
+        SETGATE(idt[T_PGFLT], 1, GD_KT, h_pgflt, 0);
+
+        SETGATE(idt[T_FPERR], 1, GD_KT, t_fperr, 0);
+        SETGATE(idt[T_ALIGN], 1, GD_KT, t_align, 0);
+        SETGATE(idt[T_MCHK], 1, GD_KT, t_mchk, 0);
+        SETGATE(idt[T_SIMDERR], 1, GD_KT, t_simderr, 0);
+        SETGATE(idt[T_SYSCALL], 1, GD_KT, t_syscall, 0);
+        SETGATE(idt[T_DEFAULT], 1, GD_KT, t_default, 0);
 
 	// Setup a TSS so that we get the right stack
 	// when we trap to the kernel.

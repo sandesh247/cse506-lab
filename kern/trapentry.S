@@ -70,4 +70,10 @@ TRAPHANDLER_NOEC(t_default   , T_DEFAULT)
  */
 
 _alltraps:
-	nop
+        pushl %ds
+        pushl %es
+        pushal
+        call random_function
+        movl %esp, %eax
+        pushl %eax
+        call trap
