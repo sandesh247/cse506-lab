@@ -165,7 +165,19 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
-	page_fault_handler(tf);
+	if (tf->tf_trapno == T_PGFLT) {
+		page_fault_handler(tf);
+	}
+	else if (tf->tf_trapno == T_SYSCALL) {
+		struct PushRegs *pr = &(tf->tf_regs);
+		uint32_t ret = syscall(pr->reg_eax, pr->reg_edx, pr->reg_ecx, 
+				       pr->reg_ebx, pr->reg_edi, pr->reg_esi);
+		__asm__ __volatile__("nop\n"
+				     :
+				     : "a" (ret)
+				     :);
+		return;
+	}
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
