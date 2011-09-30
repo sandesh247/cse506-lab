@@ -175,7 +175,7 @@ trap_dispatch(struct Trapframe *tf)
 		__asm__ __volatile__("nop\n"
 				     :
 				     : "a" (ret)
-				     :);
+				     : "memory" );
 		return;
 	}
 
