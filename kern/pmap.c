@@ -846,13 +846,14 @@ user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 
 	uintptr_t mem;
 	for(mem = start; mem < start + len; mem += PGSIZE) {
-		DPRINTF("checking %x\n", mem);
+		DPRINTF("user_mem_check::checking %x\n", mem);
 		pte_t *pte = pgdir_walk(env->env_pgdir, (void *) mem, 0);
 
-		assert(pte);
+		if(!pte) return -E_FAULT;
+
 		int perm_present = (*pte) ^ PTE_ADDR(*pte);
 
-		if((perm_present | perm) != perm || mem >= ULIM) {
+		if((perm_present & perm) != perm || mem >= ULIM) {
 			user_mem_check_addr = mem;
 			return -E_FAULT;
 		}
