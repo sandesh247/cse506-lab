@@ -1,3 +1,4 @@
+/* -*- c-basic-offset: 8; indent-tabs-mode: t -*- */
 #include <inc/mmu.h>
 #include <inc/x86.h>
 #include <inc/assert.h>
@@ -164,7 +165,7 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
-	
+	page_fault_handler(tf);
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
@@ -219,8 +220,12 @@ page_fault_handler(struct Trapframe *tf)
 	fault_va = rcr2();
 
 	// Handle kernel-mode page faults.
-	
+
 	// LAB 3: Your code here.
+	if ((tf->tf_cs & 65) == GD_KT) {
+		panic("Page fault in kernel mode!! aiee!!\n");
+		return;
+	}
 
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.
