@@ -25,8 +25,6 @@ ex1.c is in lab1/ex1.c
 
 Late hours total: 0
 
-late hours taken: 0
-
 Ex.5.3: The 4MiB mapping is required since we should maintain the same
 addresses for EIP to point to a valid instruction in memory. We think
 that once cs is loaded with the right segment offset, this mapping can
@@ -46,3 +44,9 @@ page
 Page Tables, each of which occupies 4KiB in memory, totalling 265kB of
 memory overhead for Page Tables.
 
+
++------+
+| Lab3 |
++------+
+
+late hours taken: 0
