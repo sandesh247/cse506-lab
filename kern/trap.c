@@ -234,7 +234,7 @@ page_fault_handler(struct Trapframe *tf)
 	// Handle kernel-mode page faults.
 
 	// LAB 3: Your code here.
-	if ((tf->tf_cs & 65) == GD_KT) {
+	if ((tf->tf_cs & ((1 << 16) - 1)) == GD_KT) {
 		panic("Page fault in kernel mode!! aiee!!\n");
 		return;
 	}
