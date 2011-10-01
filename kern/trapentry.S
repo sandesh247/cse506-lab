@@ -73,6 +73,9 @@ _alltraps:
         pushl %ds
         pushl %es
         pushal
+        mov $0x10, %ax
+        mov %ax, %es
+        mov %ax, %ds
         call random_function
         movl %esp, %eax
         pushl %eax

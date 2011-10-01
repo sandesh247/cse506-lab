@@ -165,8 +165,15 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
+	cprintf("trap_dispatch(%x):tf_trapno: %d\n", tf, tf->tf_trapno);
+
 	if (tf->tf_trapno == T_PGFLT) {
 		page_fault_handler(tf);
+		return;
+	}
+	else if (tf->tf_trapno == T_BRKPT) {
+		monitor(tf);
+		return;
 	}
 	else if (tf->tf_trapno == T_SYSCALL) {
 		struct PushRegs *pr = &(tf->tf_regs);
