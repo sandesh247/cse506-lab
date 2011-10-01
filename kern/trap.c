@@ -94,7 +94,7 @@ idt_init(void)
         SETGATE(idt[T_DIVIDE], 1, GD_KT, h_divide, 0);
         SETGATE(idt[T_DEBUG], 1, GD_KT, h_debug, 0);
         SETGATE(idt[T_NMI], 1, GD_KT, h_nmig, 0);
-        SETGATE(idt[T_BRKPT], 1, GD_KT, h_brkptg, 0);
+        SETGATE(idt[T_BRKPT], 1, GD_KT, h_brkptg, 3);
         SETGATE(idt[T_OFLOW], 1, GD_KT, h_oflowg, 0);
         SETGATE(idt[T_BOUND], 1, GD_KT, h_boundg, 0);
         SETGATE(idt[T_ILLOP], 1, GD_KT, h_illopg, 0);
@@ -111,7 +111,7 @@ idt_init(void)
         SETGATE(idt[T_ALIGN], 1, GD_KT, t_align, 0);
         SETGATE(idt[T_MCHK], 1, GD_KT, t_mchk, 0);
         SETGATE(idt[T_SIMDERR], 1, GD_KT, t_simderr, 0);
-        SETGATE(idt[T_SYSCALL], 1, GD_KT, t_syscall, 0);
+        SETGATE(idt[T_SYSCALL], 1, GD_KT, t_syscall, 3);
         SETGATE(idt[T_DEFAULT], 1, GD_KT, t_default, 0);
 
 	// Setup a TSS so that we get the right stack
