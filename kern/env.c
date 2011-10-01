@@ -244,7 +244,7 @@ segment_alloc(struct Env *e, void *va, size_t len)
 
 		physaddr_t addr = page2pa(newp);
 		pte = pgdir_walk(e->env_pgdir, (const void*)mem, 1);
-		DPRINTF("VA %x is now backed by physical page at address %x\n", mem, addr);
+		// DPRINTF("VA %x is now backed by physical page at address %x\n", mem, addr);
 		pte[0] = addr | PTE_W | PTE_P | PTE_U;
 	}
 	DPRINTF("segment_alloc::done allocating segments\n");
