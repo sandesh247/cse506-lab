@@ -177,12 +177,8 @@ trap_dispatch(struct Trapframe *tf)
 	}
 	else if (tf->tf_trapno == T_SYSCALL) {
 		struct PushRegs *pr = &(tf->tf_regs);
-		uint32_t ret = syscall(pr->reg_eax, pr->reg_edx, pr->reg_ecx, 
-				       pr->reg_ebx, pr->reg_edi, pr->reg_esi);
-		__asm__ __volatile__("nop\n"
-				     :
-				     : "a" (ret)
-				     : "memory" );
+		pr->reg_eax = syscall(pr->reg_eax, pr->reg_edx, pr->reg_ecx, 
+				      pr->reg_ebx, pr->reg_edi, pr->reg_esi);
 		return;
 	}
 
