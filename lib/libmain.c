@@ -1,3 +1,4 @@
+/* -*- c-basic-offset: 8; indent-tabs-mode: t -*- */
 // Called from entry.S to get us going.
 // entry.S already took care of defining envs, pages, vpd, and vpt.
 
