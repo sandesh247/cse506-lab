@@ -123,7 +123,7 @@ include user/Makefrag
 
 
 IMAGES = $(OBJDIR)/kern/kernel.img
-QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio #file:jos.out
+QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio
 
 .gdbinit: .gdbinit.tmpl
 	sed "s/localhost:1234/localhost:$(GDBPORT)/" < $^ > $@
