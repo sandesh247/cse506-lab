@@ -1,0 +1,19 @@
+showmappings: Shows mappings for a virtual address range and displays
+the physical page address(es) that the virtual address(es) map to.
+
+chperm: Changes permissions of a range of virtual addresses.
+
+dumpmem: Dumps the contents of a range of virtual addresses as 8-byte
+hexadecimal integers, with 6 on a single line. Displays 0xffffffff if
+the mapping doesn't exist.
+
+page_status: Shows the page's allocation status, ref count, address in
+memory, kernal virtual address, physical address, allocation status.
+
+alloc_page: Allocates a page. Takes in an optional argument, a physical
+address, the corresponding page of which is allocated, otherwise the
+first page from the free list is taken.
+
+free_page: Returns a page to the free_list, and unmaps any virtual
+addresses that were mapped to it. Any VAs unmapped are printed on
+screen.
