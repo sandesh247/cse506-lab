@@ -20,7 +20,7 @@ sched_yield(void)
 
 	// LAB 4: Your code here.
 	int i;
-	for(i = 0; i < sizeof(NENV); ++i) {
+	for(i = 1; i < sizeof(NENV); ++i) {
 		if(envs[i].env_status == ENV_RUNNABLE) {
 			env_run(&envs[i]);
 		}
