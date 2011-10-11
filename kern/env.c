@@ -330,16 +330,16 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 		return;
 	}
 
-	cprintf("Before loading CR3 with %u\n", e->env_cr3);
+	DPRINTF("Before loading CR3 with %u\n", e->env_cr3);
 	lcr3(e->env_cr3);
-	cprintf("After loading CR3 with %u\n", e->env_cr3);
+	DPRINTF("After loading CR3 with %u\n", e->env_cr3);
 
 	// load each program segment (ignores ph flags)
 	ph = (struct Proghdr *) ((uint8_t *) elf + elf->e_phoff);
 	eph = ph + elf->e_phnum;
 	for (; ph < eph; ph++) {
 		if (ph->p_type == ELF_PROG_LOAD) {
-			cprintf("Loading ELF header at %x\n", ph);
+			DPRINTF("Loading ELF header at %x\n", ph);
 
 			// Copy ph->p_memsz bytes from binary +
 			// ph->p_offset into the virtual address
@@ -391,9 +391,9 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 	e->env_tf.tf_eip = (elf->e_entry & 0xFFFFFF);
 	assert(e->env_tf.tf_eip != 0);
 
-	cprintf("Before loading CR3 with (boot_pgdir) %u\n", PADDR(boot_pgdir));
+	DPRINTF("Before loading CR3 with (boot_pgdir) %u\n", PADDR(boot_pgdir));
 	lcr3(PADDR(boot_pgdir));
-	cprintf("After loading CR3 with (boot_pgdir) %u\n", PADDR(boot_pgdir));
+	DPRINTF("After loading CR3 with (boot_pgdir) %u\n", PADDR(boot_pgdir));
 
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
@@ -534,7 +534,7 @@ env_run(struct Env *e)
 	//	and make sure you have set the relevant parts of
 	//	e->env_tf to sensible values.
 
-	cprintf("About to run %x\n", e);
+	DPRINTF("About to run %x\n", e);
 
 	if(curenv != e) {
 		curenv = e;

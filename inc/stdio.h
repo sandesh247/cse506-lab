@@ -8,8 +8,8 @@
 #endif /* !NULL */
 
 
-#define DPRINTF cprintf
-// #define DPRINTF //
+#define DPRINTF2 cprintf
+#define DPRINTF //
 
 // lib/stdio.c
 void	cputchar(int c);

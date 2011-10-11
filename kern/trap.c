@@ -183,7 +183,7 @@ trap_dispatch(struct Trapframe *tf)
 		return;
 	}
 
-	cprintf("trap_dispatch(%x):tf_trapno: %d\n", tf, tf->tf_trapno);
+	DPRINTF("trap_dispatch(%x):tf_trapno: %d\n", tf, tf->tf_trapno);
 
 	if (tf->tf_trapno == T_PGFLT) {
 		page_fault_handler(tf);
