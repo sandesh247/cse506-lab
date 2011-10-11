@@ -1,3 +1,4 @@
+// -*- c-basic-offset: 8; indent-tabs-mode: t -*-
 #include <inc/assert.h>
 
 #include <kern/env.h>
@@ -19,8 +20,15 @@ sched_yield(void)
 	// unless NOTHING else is runnable.
 
 	// LAB 4: Your code here.
-	int i;
-	for(i = 1; i < sizeof(NENV); ++i) {
+	int i = (curenv ? curenv - envs : 1);
+	for(; i < NENV; ++i) {
+		if(envs[i].env_status == ENV_RUNNABLE) {
+			env_run(&envs[i]);
+		}
+	}
+
+	int _i = (curenv ? curenv - envs : 1);
+	for(i = 1; i < _i; ++i) {
 		if(envs[i].env_status == ENV_RUNNABLE) {
 			env_run(&envs[i]);
 		}
