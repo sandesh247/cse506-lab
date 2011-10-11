@@ -27,7 +27,7 @@ sched_yield(void)
 		}
 	}
 
-	int _i = (curenv ? curenv - envs : 1);
+	int _i = (curenv ? curenv - envs : NENV);
 	for(i = 1; i < _i; ++i) {
 		if(envs[i].env_status == ENV_RUNNABLE) {
 			env_run(&envs[i]);
