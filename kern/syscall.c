@@ -108,7 +108,14 @@ sys_env_set_status(envid_t envid, int status)
 	// envid's status.
 
 	// LAB 4: Your code here.
-	panic("sys_env_set_status not implemented");
+	// panic("sys_env_set_status not implemented");
+	struct Env *e = NULL;
+	int ret = envid2env(envid, &e, 1);
+	if (ret) {
+		return ret;
+	}
+	e->env_status = (unsigned)status;
+	return 0;
 }
 
 // Set the page fault upcall for 'envid' by modifying the corresponding struct
@@ -153,7 +160,38 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	//   allocated!
 
 	// LAB 4: Your code here.
-	panic("sys_page_alloc not implemented");
+	// panic("sys_page_alloc not implemented");
+
+	if ((perm & (PTE_P | PTE_U)) != (PTE_P|PTE_U)) {
+		return -E_INVAL;
+	}
+	const int abits = PTE_P | PTE_U | PTE_AVAIL | PTE_W;
+	if (perm & ~abits) {
+		return -E_INVAL;
+	}
+
+	struct Env *e = NULL;
+	int ret = envid2env(envid, &e, 1);
+	if (ret) {
+		return -E_BAD_ENV;
+	}
+
+	if ((uint32_t)va > UTOP || 
+	    ROUNDDOWN((uint32_t)va, PGSIZE) != (uint32_t)va) {
+		return -E_INVAL;
+	}
+
+	struct Page *page = NULL;
+	ret = page_alloc(&page);
+	if (ret) {
+		return -E_NO_MEM;
+	}
+
+	ret = page_insert(e->env_pgdir, page, va, perm);
+	if (ret) {
+		page_free(page);
+	}
+	return ret;
 }
 
 // Map the page of memory at 'srcva' in srcenvid's address space
