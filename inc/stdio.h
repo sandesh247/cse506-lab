@@ -10,6 +10,7 @@
 
 #define DPRINTF2 cprintf
 #define DPRINTF //
+#define DPRINTF4 cprintf
 
 // lib/stdio.c
 void	cputchar(int c);

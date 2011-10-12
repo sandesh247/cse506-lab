@@ -182,7 +182,7 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 		return -E_BAD_ENV;
 	}
 
-	if ((uint32_t)va > UTOP || 
+	if ((uint32_t)va >= UTOP || 
 	    ROUNDDOWN((uint32_t)va, PGSIZE) != (uint32_t)va) {
 		return -E_INVAL;
 	}
@@ -231,10 +231,10 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	int error;
 
 	error = envid2env(srcenvid, &se, 1);
-	if(error <  0) return error;
+	if (error) return -E_BAD_ENV;
 
 	error = envid2env(dstenvid, &de, 1);
-	if(error < 0) return error;
+	if (error) return -E_BAD_ENV;
 
 	pte_t *spte;
 	struct Page *spp = page_lookup(se->env_pgdir, srcva, &spte);
@@ -247,7 +247,7 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	}
 
 	error = page_insert(de->env_pgdir, spp, dstva, perm);
-	if(error < 0) return error;
+	if (error) return -E_NO_MEM;
 
 	return 0;
 }
@@ -265,7 +265,21 @@ sys_page_unmap(envid_t envid, void *va)
 	// Hint: This function is a wrapper around page_remove().
 
 	// LAB 4: Your code here.
-	panic("sys_page_unmap not implemented");
+	// panic("sys_page_unmap not implemented");
+	struct Env *e;
+	int ret;
+
+	ret = envid2env(envid, &e, 1);
+	if (ret) {
+		return -E_BAD_ENV;
+	}
+
+	if ((uint32_t)va >= UTOP || 
+	    ROUNDDOWN((uint32_t)va, PGSIZE) != (uint32_t)va) {
+		return -E_INVAL;
+	}
+
+	page_remove(e->env_pgdir, va);
 }
 
 // Try to send 'value' to the target env 'envid'.
@@ -370,11 +384,16 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return sys_page_map((envid_t)a1, (void*)a2, 
 				    (envid_t)a3, (void*)a4, (int)a5);
 
+	case SYS_page_unmap:
+		return sys_page_map((envid_t)a1, (void*)a2, 
+				    (envid_t)a3, (void*)a4, (int)a5);
+
 	case SYS_env_set_status:
 		return sys_env_set_status((envid_t)a1, (int)a2);
 
 	}
 
+	DPRINTF4("syscall number '%d' not yet implemented\n", syscallno);
 	panic("syscall not implemented");
 	return 0;
 }
