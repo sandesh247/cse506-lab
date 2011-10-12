@@ -87,8 +87,14 @@ sys_exofork(void)
 	// from the current environment -- but tweaked so sys_exofork
 	// will appear to return 0.
 
-	// LAB 4: Your code here.
-	panic("sys_exofork not implemented");
+	struct Env *ne, *e;
+	envid2env(0, &e, 0);
+	env_alloc(&ne, e->env_id);
+
+	memmove(&(ne->env_tf), &(e->env_tf), sizeof(struct Trapframe));
+	ne->env_tf.tf_regs.reg_eax = 0;
+
+	return ne->env_id;
 }
 
 // Set envid's env_status to status, which must be ENV_RUNNABLE
@@ -220,9 +226,30 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	//   parameters for correctness.
 	//   Use the third argument to page_lookup() to
 	//   check the current permissions on the page.
+	
+	struct Env *se, *de;
+	int error;
 
-	// LAB 4: Your code here.
-	panic("sys_page_map not implemented");
+	error = envid2env(srcenvid, &se, 1);
+	if(error <  0) return error;
+
+	error = envid2env(dstenvid, &de, 1);
+	if(error < 0) return error;
+
+	pte_t *spte;
+	struct Page *spp = page_lookup(se->env_pgdir, srcva, &spte);
+	if(spp == 0) {
+		return -E_INVAL;
+	}
+	
+	if((PTE_W & perm) && !(PTE_W & (page2pa(spp) ^ (*spte)))) {
+		return -E_INVAL;
+	}
+
+	error = page_insert(de->env_pgdir, spp, dstva, perm);
+	if(error < 0) return error;
+
+	return 0;
 }
 
 // Unmap the page of memory at 'va' in the address space of 'envid'.
