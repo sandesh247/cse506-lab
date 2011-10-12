@@ -359,6 +359,20 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	case SYS_yield:
 		sys_yield();
 		return 0;
+
+        case SYS_exofork:
+		return sys_exofork();
+
+	case SYS_page_alloc:
+		return (int32_t)sys_page_alloc((envid_t)a1, (void*)a2, (int)a3);
+
+	case SYS_page_map:
+		return sys_page_map((envid_t)a1, (void*)a2, 
+				    (envid_t)a3, (void*)a4, (int)a5);
+
+	case SYS_env_set_status:
+		return sys_env_set_status((envid_t)a1, (int)a2);
+
 	}
 
 	panic("syscall not implemented");
