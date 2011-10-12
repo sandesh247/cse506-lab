@@ -97,7 +97,7 @@ idt_init(void)
 
 	// LAB 3: Your code here.
         SETGATE(idt[T_DIVIDE], 1, GD_KT, h_divide, 0);
-        SETGATE(idt[T_DEBUG], 1, GD_KT, h_debug, 0);
+        SETGATE(idt[T_DEBUG], 1, GD_KT, h_debug, 3);
         SETGATE(idt[T_NMI], 1, GD_KT, h_nmig, 0);
         SETGATE(idt[T_BRKPT], 1, GD_KT, h_brkptg, 3);
         SETGATE(idt[T_OFLOW], 1, GD_KT, h_oflowg, 0);
