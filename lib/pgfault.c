@@ -1,3 +1,4 @@
+// -*- c-basic-offset: 8; indent-tabs-mode: t -*-
 // User-level page fault handler support.
 // Rather than register the C page fault handler directly with the
 // kernel as the page fault handler, we register the assembly language
@@ -29,7 +30,11 @@ set_pgfault_handler(void (*handler)(struct UTrapframe *utf))
 	if (_pgfault_handler == 0) {
 		// First time through!
 		// LAB 4: Your code here.
-		panic("set_pgfault_handler not implemented");
+		// panic("set_pgfault_handler not implemented");
+		int ret = sys_page_alloc(0, (void*)USTACKTOP, PTE_U|PTE_P);
+		if (ret) {
+			panic("Could NOT allocate a page for the trap-time stack");
+		}
 	}
 
 	// Save handler pointer for assembly to call.
