@@ -12,6 +12,7 @@
 #include <kern/sched.h>
 #include <kern/kclock.h>
 #include <kern/picirq.h>
+#include <inc/string.h>
 
 static struct Taskstate ts;
 
@@ -294,6 +295,40 @@ page_fault_handler(struct Trapframe *tf)
 	//   (the 'tf' variable points at 'curenv->env_tf').
 
 	// LAB 4: Your code here.
+	
+	if(curenv->env_tf.tf_esp > UXSTACKTOP - PGSIZE) {
+		if(curenv->env_pgfault_upcall) {
+			int offset = sizeof(uint32_t);
+
+			if(curenv->env_tf.tf_esp <= USTACKTOP) {
+				// we are in the normal user stack
+				curenv->env_tf.tf_esp = UXSTACKTOP;
+
+				// First exception, w
+				offset = 0;
+			}
+
+			struct UTrapframe* utf = (struct UTrapframe *) 
+				(curenv->env_tf.tf_esp - offset - sizeof(struct UTrapframe));
+			
+			utf->utf_fault_va = fault_va;
+			utf->utf_err = tf->tf_err;
+			memmove((void *)&utf->utf_regs, (void *)&tf->tf_regs, sizeof(struct PushRegs));
+			utf->utf_eip = tf->tf_eip;
+			utf->utf_eip = tf->tf_eip;
+			utf->utf_eflags = tf->tf_eflags;
+			utf->utf_esp = tf->tf_esp;
+
+			curenv->env_tf.tf_eip = (uintptr_t) curenv->env_pgfault_upcall;
+			curenv->env_tf.tf_esp = (uintptr_t) utf;
+
+			// TODO: user_mem_assert()
+
+			env_run(curenv);
+		}
+	} else {
+		// We've overrun the user exception stack
+	}
 
 	// Destroy the environment that caused the fault.
 	cprintf("[%08x] user fault va %08x ip %08x\n",
