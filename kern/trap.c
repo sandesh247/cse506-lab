@@ -246,6 +246,13 @@ trap(struct Trapframe *tf)
 		sched_yield();
 }
 
+unsigned int getCR3(void)
+{
+   unsigned int _cr3;
+
+   asm ("mov %%cr3, %0":"=r" (_cr3));
+   return _cr3;
+}
 
 void
 page_fault_handler(struct Trapframe *tf)
@@ -259,7 +266,7 @@ page_fault_handler(struct Trapframe *tf)
 
 	// LAB 3: Your code here.
 	if ((tf->tf_cs & ((1 << 16) - 1)) == GD_KT) {
-		panic("Page fault in kernel mode!! aiee!!\n");
+		panic("Page fault in kernel mode!! at VA: %x\n", fault_va);
 		return;
 	}
 
@@ -295,22 +302,31 @@ page_fault_handler(struct Trapframe *tf)
 	//   (the 'tf' variable points at 'curenv->env_tf').
 
 	// LAB 4: Your code here.
-	
-	if(curenv->env_tf.tf_esp > UXSTACKTOP - PGSIZE) {
-		if(curenv->env_pgfault_upcall) {
+
+	DPRINTF4("curenv: %x\n", curenv);
+	DPRINTF4("curenv->env_tf.tf_esp: %x, UXSTACKTOP - PGSIZE: %x, USTACKTOP: %x\n", curenv->env_tf.tf_esp, UXSTACKTOP - PGSIZE, USTACKTOP);
+
+	if (!(curenv->env_tf.tf_esp < UXSTACKTOP - PGSIZE && curenv->env_tf.tf_esp > USTACKTOP)) {
+		DPRINTF4("No trap time stack allocated\n");
+		DPRINTF4("Upcall is: %x\n", curenv->env_pgfault_upcall);
+
+		if (curenv->env_pgfault_upcall) {
 			int offset = sizeof(uint32_t);
 
-			if(curenv->env_tf.tf_esp <= USTACKTOP) {
+			if (curenv->env_tf.tf_esp <= USTACKTOP) {
 				// we are in the normal user stack
+				DPRINTF4("First time\n");
 				curenv->env_tf.tf_esp = UXSTACKTOP;
 
 				// First exception, w
 				offset = 0;
 			}
 
+			// lcr3(curenv->env_cr3);
 			struct UTrapframe* utf = (struct UTrapframe *) 
 				(curenv->env_tf.tf_esp - offset - sizeof(struct UTrapframe));
-			
+			DPRINTF4("utf: %x, current CR3: %x, boot_cr3: %x, curenv->env_cr3: %x\n", utf, getCR3(), boot_cr3, curenv->env_cr3);
+
 			utf->utf_fault_va = fault_va;
 			utf->utf_err = tf->tf_err;
 			memmove((void *)&utf->utf_regs, (void *)&tf->tf_regs, sizeof(struct PushRegs));
@@ -318,6 +334,8 @@ page_fault_handler(struct Trapframe *tf)
 			utf->utf_eip = tf->tf_eip;
 			utf->utf_eflags = tf->tf_eflags;
 			utf->utf_esp = tf->tf_esp;
+
+			// lcr3(boot_cr3);
 
 			curenv->env_tf.tf_eip = (uintptr_t) curenv->env_pgfault_upcall;
 			curenv->env_tf.tf_esp = (uintptr_t) utf;

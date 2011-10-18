@@ -253,6 +253,7 @@ i386_vm_init(void)
 	// Your code goes here:
 	boot_map_segment(boot_pgdir, KERNBASE, 0xFFFFFFFF - KERNBASE, 0, PTE_W | PTE_P);
 
+
 	// Check that the initial page directory has been set up correctly.
 	check_boot_pgdir();
 
@@ -694,7 +695,9 @@ page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm)
 	page_addr = page2pa(pp) | PTE_P | perm;
 	pte = pgdir_walk(pgdir, va, 0);
 
-	if(!pte) {
+	DPRINTF("page_addr: %x\n", page_addr);
+
+	if (!pte) {
 		pte = pgdir_walk(pgdir, va, 1);
 		if(!pte) {
 		  DPRINTF("page_insert returning: -E_NO_MEM\n");
@@ -704,7 +707,9 @@ page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm)
 		*pte = page_addr;
 		page_incref(pp);
 	} else {
+		DPRINTF("*pte == %x\n", *pte);
 		pprev = pa2page(*pte);
+		DPRINTF("pprev: %x\n", pprev);
 
 		if(pp == pprev) {
 		  // this va was mapped to this page wonly ...
@@ -712,9 +717,11 @@ page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm)
 		  pte[0] = page_addr;
 
 		} else {
-			DPRINTF("page_insert::removing page at VA: %x\n", va);
-			page_remove(pgdir, va);
-			pte[0] = page_addr;
+			if (*pte) {
+				DPRINTF("page_insert::removing page at VA: %x\n", va);
+				page_remove(pgdir, va);
+			}
+			*pte = page_addr;
 			page_incref(pp);
 		}
 		
@@ -796,6 +803,7 @@ page_remove(pde_t *pgdir, void *va)
 	pte_t* pte;
 
 	cp = page_lookup(pgdir, va, &pte);
+	DPRINTF("page_remove::cp: %x\n", cp);
 
 	if(!cp) return;
 

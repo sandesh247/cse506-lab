@@ -178,12 +178,12 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	// LAB 4: Your code here.
 	// panic("sys_page_alloc not implemented");
 
+	DPRINTF4("sys_page_alloc(%x)\n", va);
 	if ((perm & (PTE_P | PTE_U)) != (PTE_P|PTE_U)) {
 		DPRINTF4("perm 1\n");
 		return -E_INVAL;
 	}
-	const int abits = PTE_P | PTE_U | PTE_AVAIL | PTE_W;
-	if (perm & ~abits) {
+	if (perm & ~PTE_USER) {
 		DPRINTF4("perm 2\n");
 		return -E_INVAL;
 	}
@@ -210,6 +210,10 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	if (ret) {
 		page_free(page);
 	}
+	DPRINTF4("sys_page_alloc::e: %x\n", e);
+	// lcr3(e->env_cr3);
+	// *((char*)va+10) = 20;
+	// lcr3(boot_cr3);
 	return ret;
 }
 
