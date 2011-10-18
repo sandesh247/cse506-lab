@@ -192,7 +192,7 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 		return -E_BAD_ENV;
 	}
 
-	if ((uint32_t)va >= UTOP || 
+	if ((uint32_t)va > UTOP || 
 	    ROUNDDOWN((uint32_t)va, PGSIZE) != (uint32_t)va) {
 		return -E_INVAL;
 	}
