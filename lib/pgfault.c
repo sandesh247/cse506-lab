@@ -31,9 +31,9 @@ set_pgfault_handler(void (*handler)(struct UTrapframe *utf))
 		// First time through!
 		// LAB 4: Your code here.
 		// panic("set_pgfault_handler not implemented");
-		int ret = sys_page_alloc(0, (void*)USTACKTOP, PTE_U|PTE_P);
+		int ret = sys_page_alloc(0, (void*)UXSTACKTOP, PTE_U|PTE_P);
 		if (ret) {
-			panic("Could NOT allocate a page for the trap-time stack");
+			panic("Could NOT allocate a page for the trap-time stack: %e", ret);
 		}
 	}
 
