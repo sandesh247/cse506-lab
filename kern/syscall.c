@@ -179,10 +179,12 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	// panic("sys_page_alloc not implemented");
 
 	if ((perm & (PTE_P | PTE_U)) != (PTE_P|PTE_U)) {
+		DPRINTF4("perm 1\n");
 		return -E_INVAL;
 	}
 	const int abits = PTE_P | PTE_U | PTE_AVAIL | PTE_W;
 	if (perm & ~abits) {
+		DPRINTF4("perm 2\n");
 		return -E_INVAL;
 	}
 
@@ -194,6 +196,7 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 
 	if ((uint32_t)va > UTOP || 
 	    ROUNDDOWN((uint32_t)va, PGSIZE) != (uint32_t)va) {
+		DPRINTF4("VA > UTOP\n");
 		return -E_INVAL;
 	}
 
