@@ -133,7 +133,7 @@ boot_alloc(uint32_t n, uint32_t align)
 	boot_freemem = ROUNDUP(boot_freemem,  align);
 	void *alloc_chunk = boot_freemem;
 	boot_freemem += n;
-	cprintf("boot_alloc() returning: %x, boot_freemem is: %x\n", alloc_chunk, boot_freemem);
+	DPRINTF("boot_alloc() returning: %x, boot_freemem is: %x\n", alloc_chunk, boot_freemem);
 	return alloc_chunk;
 
 	// return NULL;
