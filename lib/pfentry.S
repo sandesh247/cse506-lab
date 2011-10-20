@@ -85,11 +85,11 @@ _pgfault_upcall:
 	// no longer use arithmetic operations or anything else that
 	// modifies eflags.
 	// LAB 4: Your code here.
-        pushl 44(%eax) // the trap-time %eip
+        pushl 44(%eax) // the flags
         popf // Restore flags
 
         movl 48(%eax), %esp // Restore to previous stack
-        push %eax // Push trap-time %eip on to the stack
+        push 44(%eax) // Push trap-time %eip on to the stack
 
         movl 36(%eax), %eax // Restore %eax
 
