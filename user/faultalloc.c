@@ -31,14 +31,16 @@ void
 umain(void)
 {
 	set_pgfault_handler(handler);
-        // cprintf("%s\n", (char*)0xDeadBeef);
+        cprintf("%s\n", (char*)0xDeadBeef);
         cprintf("getESP() = %x\n", getESP());
 
+        /*
         *(char*)0xDeadBeef = 'c';
         str1[0] = 'd';
         cprintf(str1);
         str1[0] = 'x';
-
         cprintf(str2, 33);
+        */
+
 	cprintf("%s\n", (char*)0xCafeBffe);
 }
