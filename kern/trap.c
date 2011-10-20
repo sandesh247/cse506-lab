@@ -306,6 +306,8 @@ page_fault_handler(struct Trapframe *tf)
 	DPRINTF4("Page fault at address: %x, curenv: %x\n", fault_va, curenv);
 	DPRINTF4("curenv->env_tf.tf_esp: %x, UXSTACKTOP - PGSIZE: %x, USTACKTOP: %x\n", tf->tf_esp, UXSTACKTOP - PGSIZE, USTACKTOP);
 
+	struct Trapframe orig_tf = curenv->env_tf;
+
 	if (!(curenv->env_tf.tf_esp < UXSTACKTOP - PGSIZE && curenv->env_tf.tf_esp > USTACKTOP)) {
 		DPRINTF4("No trap time stack allocated\n");
 		DPRINTF4("Upcall is: %x\n", curenv->env_pgfault_upcall);
@@ -328,12 +330,11 @@ page_fault_handler(struct Trapframe *tf)
 			DPRINTF4("utf: %x, current CR3: %x, boot_cr3: %x, curenv->env_cr3: %x\n", utf, getCR3(), boot_cr3, curenv->env_cr3);
 
 			utf->utf_fault_va = fault_va;
-			utf->utf_err = tf->tf_err;
-			utf->utf_regs = tf->tf_regs;
-			// memmove((void *)&utf->utf_regs, (void *)&tf->tf_regs, sizeof(struct PushRegs));
-			utf->utf_eip = tf->tf_eip;
-			utf->utf_eflags = tf->tf_eflags;
-			utf->utf_esp = tf->tf_esp;
+			utf->utf_err = orig_tf.tf_err;
+			utf->utf_regs = orig_tf.tf_regs;
+			utf->utf_eip = orig_tf.tf_eip;
+			utf->utf_eflags = orig_tf.tf_eflags;
+			utf->utf_esp = orig_tf.tf_esp;
 
 			// lcr3(boot_cr3);
 
