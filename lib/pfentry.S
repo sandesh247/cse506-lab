@@ -74,7 +74,7 @@ _pgfault_upcall:
         // movl %esp, %eax
         // addl %eax, 4 // %eax contains pointer to top on UTrapFrame
 
-        movl 8(%eax), %edi
+        movl  8(%eax), %edi
         movl 12(%eax), %esi
         movl 16(%eax), %ebp
         movl 24(%eax), %ebx
@@ -89,7 +89,7 @@ _pgfault_upcall:
         popf // Restore flags
 
         movl 48(%eax), %esp // Restore to previous stack
-        push 44(%eax) // Push trap-time %eip on to the stack
+        push 40(%eax) // Push trap-time %eip on to the stack
 
         movl 36(%eax), %eax // Restore %eax
 
