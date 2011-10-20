@@ -66,7 +66,7 @@ _pgfault_upcall:
 	// ways as registers become unavailable as scratch space.
 	//
 	// LAB 4: Your code here.
-        movl 40(%esp), %eax // %eax now contains the trap-time %eip
+        movl %esp, %eax // %eax now contains %esp
 
 	// Restore the trap-time registers.  After you do this, you
 	// can no longer modify any general-purpose registers.
@@ -85,7 +85,7 @@ _pgfault_upcall:
 	// no longer use arithmetic operations or anything else that
 	// modifies eflags.
 	// LAB 4: Your code here.
-        pushl 44(%eax)
+        pushl 44(%eax) // the trap-time %eip
         popf // Restore flags
 
         movl 48(%eax), %esp // Restore to previous stack
