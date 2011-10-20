@@ -1,3 +1,4 @@
+// -*- c-basic-offset: 8; indent-tabs-mode: t -*-
 // implement fork from user space
 
 #include <inc/string.h>
@@ -57,6 +58,10 @@ duppage(envid_t envid, unsigned pn)
 	// LAB 4: Your code here.
 	panic("duppage not implemented");
 	return 0;
+}
+
+envid_t
+clone(int shared_heap) {
 }
 
 //
