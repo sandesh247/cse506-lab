@@ -309,7 +309,6 @@ page_fault_handler(struct Trapframe *tf)
 	struct Trapframe orig_tf = curenv->env_tf;
 
 	if (!(curenv->env_tf.tf_esp < UXSTACKTOP - PGSIZE && curenv->env_tf.tf_esp > USTACKTOP)) {
-		DPRINTF4("No trap time stack allocated\n");
 		DPRINTF4("Upcall is: %x\n", curenv->env_pgfault_upcall);
 
 		if (curenv->env_pgfault_upcall) {
@@ -317,7 +316,7 @@ page_fault_handler(struct Trapframe *tf)
 
 			if (curenv->env_tf.tf_esp <= USTACKTOP) {
 				// we are in the normal user stack
-				DPRINTF4("First time\n");
+				DPRINTF4("No trap time stack allocated\n");
 				curenv->env_tf.tf_esp = UXSTACKTOP - 4;
 
 				// First exception, w
@@ -341,8 +340,7 @@ page_fault_handler(struct Trapframe *tf)
 			curenv->env_tf.tf_eip = (uintptr_t) curenv->env_pgfault_upcall;
 			curenv->env_tf.tf_esp = (uintptr_t) utf;
 
-			// TODO: user_mem_assert()
-
+			DPRINTF4("page_fault_handler::about to run environment: %x\n", curenv);
 			env_run(curenv);
 		}
 	} else {
