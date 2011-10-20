@@ -68,11 +68,11 @@ _pgfault_upcall:
 	// LAB 4: Your code here.
         movl %esp, %eax // %eax now contains %esp
 
-        pushl 48(%eax)
-        pushl $0x80200c
-        call cprintf
-        addl $8, %esp
-        movl %esp, %eax // Restore %eax since cprintf clobbers %eax
+        // pushl 48(%eax)
+        // pushl $0x80200c
+        // call cprintf
+        // addl $8, %esp
+        // movl %esp, %eax // Restore %eax since cprintf clobbers %eax
 
 	// Restore the trap-time registers.  After you do this, you
 	// can no longer modify any general-purpose registers.
