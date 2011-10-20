@@ -9,7 +9,8 @@
 
 
 #define DPRINTF2 cprintf
-#define DPRINTF  cprintf
+#define DPRINTF 
+// cprintf
 #define DPRINTF4 cprintf
 
 // lib/stdio.c

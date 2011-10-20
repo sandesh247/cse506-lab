@@ -303,8 +303,8 @@ page_fault_handler(struct Trapframe *tf)
 
 	// LAB 4: Your code here.
 
-	DPRINTF4("curenv: %x\n", curenv);
-	DPRINTF4("curenv->env_tf.tf_esp: %x, UXSTACKTOP - PGSIZE: %x, USTACKTOP: %x\n", curenv->env_tf.tf_esp, UXSTACKTOP - PGSIZE, USTACKTOP);
+	DPRINTF4("Page fault at address: %x, curenv: %x\n", fault_va, curenv);
+	DPRINTF4("curenv->env_tf.tf_esp: %x, UXSTACKTOP - PGSIZE: %x, USTACKTOP: %x\n", tf->tf_esp, UXSTACKTOP - PGSIZE, USTACKTOP);
 
 	if (!(curenv->env_tf.tf_esp < UXSTACKTOP - PGSIZE && curenv->env_tf.tf_esp > USTACKTOP)) {
 		DPRINTF4("No trap time stack allocated\n");
@@ -316,7 +316,7 @@ page_fault_handler(struct Trapframe *tf)
 			if (curenv->env_tf.tf_esp <= USTACKTOP) {
 				// we are in the normal user stack
 				DPRINTF4("First time\n");
-				curenv->env_tf.tf_esp = UXSTACKTOP;
+				curenv->env_tf.tf_esp = UXSTACKTOP - 4;
 
 				// First exception, w
 				offset = 0;
@@ -329,8 +329,8 @@ page_fault_handler(struct Trapframe *tf)
 
 			utf->utf_fault_va = fault_va;
 			utf->utf_err = tf->tf_err;
-			memmove((void *)&utf->utf_regs, (void *)&tf->tf_regs, sizeof(struct PushRegs));
-			utf->utf_eip = tf->tf_eip;
+			utf->utf_regs = tf->tf_regs;
+			// memmove((void *)&utf->utf_regs, (void *)&tf->tf_regs, sizeof(struct PushRegs));
 			utf->utf_eip = tf->tf_eip;
 			utf->utf_eflags = tf->tf_eflags;
 			utf->utf_esp = tf->tf_esp;

@@ -16,12 +16,29 @@ handler(struct UTrapframe *utf)
 	snprintf((char*) addr, 100, "this string was faulted in at %x", addr);
 }
 
+char str1[] = "sandy, boo\n";
+char str2[] = "ESP: %x\n";
+
+unsigned int getESP(void)
+{
+   unsigned int _esp;
+
+   asm ("mov %%esp, %0":"=r" (_esp));
+   return _esp;
+}
+
 void
 umain(void)
 {
 	set_pgfault_handler(handler);
         // cprintf("%s\n", (char*)0xDeadBeef);
+        cprintf("getESP() = %x\n", getESP());
+
         *(char*)0xDeadBeef = 'c';
-        cprintf("boo\n");
+        str1[0] = 'd';
+        cprintf(str1);
+        str1[0] = 'x';
+
+        cprintf(str2, 33);
 	cprintf("%s\n", (char*)0xCafeBffe);
 }
