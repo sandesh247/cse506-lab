@@ -304,7 +304,7 @@ page_fault_handler(struct Trapframe *tf)
 	// LAB 4: Your code here.
 
 	DPRINTF4("Page fault at address: %x, curenv: %x\n", fault_va, curenv);
-	DPRINTF4("curenv->env_tf.tf_esp: %x, UXSTACKTOP - PGSIZE: %x, USTACKTOP: %x\n", tf->tf_esp, UXSTACKTOP - PGSIZE, USTACKTOP);
+	DPRINTF4("curenv->env_tf.tf_esp: %x, UXSTACKTOP - PGSIZE: %x, USTACKTOP: %x, UXSTACKTOP: %x\n", tf->tf_esp, UXSTACKTOP - PGSIZE, USTACKTOP, UXSTACKTOP);
 
 	struct Trapframe orig_tf = curenv->env_tf;
 
@@ -324,9 +324,9 @@ page_fault_handler(struct Trapframe *tf)
 				offset = 0;
 			}
 
-			// lcr3(curenv->env_cr3);
 			struct UTrapframe* utf = (struct UTrapframe *) 
 				(curenv->env_tf.tf_esp - offset - sizeof(struct UTrapframe));
+			user_mem_assert(curenv, utf, sizeof(struct UTrapframe), PTE_P | PTE_W | PTE_U);
 			DPRINTF4("utf: %x, current CR3: %x, boot_cr3: %x, curenv->env_cr3: %x\n", utf, getCR3(), boot_cr3, curenv->env_cr3);
 
 			utf->utf_fault_va = fault_va;
@@ -335,8 +335,6 @@ page_fault_handler(struct Trapframe *tf)
 			utf->utf_eip = orig_tf.tf_eip;
 			utf->utf_eflags = orig_tf.tf_eflags;
 			utf->utf_esp = orig_tf.tf_esp;
-
-			// lcr3(boot_cr3);
 
 			curenv->env_tf.tf_eip = (uintptr_t) curenv->env_pgfault_upcall;
 			curenv->env_tf.tf_esp = (uintptr_t) utf;
