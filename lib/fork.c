@@ -27,10 +27,10 @@ pgfault(struct UTrapframe *utf)
 	//   Use the read-only page table mappings at vpt
 	//   (see <inc/memlayout.h>).
 	// LAB 4: Your code here.
-	int pn = fault_va / PGSIZE;
+	int pn = (uint32_t)addr / PGSIZE;
 
 	// maybe use constants FEC_* in mmu.h ?
-	if(!(err & 0x7 == 0x7)) {
+	if(!((err & 0x7) == 0x7)) {
 		panic("pgfault not due to a write violation.");
 	}
 
@@ -85,7 +85,7 @@ duppage(envid_t envid, unsigned pn)
 	int page_perms = pentry & PTE_USER;
 	if (page_perms & (PTE_COW | PTE_W)) {
 		// Page is writable or COW...
-		page_perms = page_perms | PTE_COW & (~PTE_W);
+		page_perms = (page_perms | PTE_COW) & (~PTE_W);
 		r = sys_page_map(0, va, envid, va, page_perms);
 		RETURN_NON_ZERO(r, r);
 
@@ -109,7 +109,7 @@ clone(int shared_heap) {
 		// Parent
 
 		// Save old handler
-		_old_pgfault_handler = _pgfault_handler;
+		//_old_pgfault_handler = _pgfault_handler;
 
 		// Set page fault handler to COW handler
 		set_pgfault_handler(pgfault);
@@ -128,6 +128,8 @@ clone(int shared_heap) {
 	else {
 		// fork() use-case
 	}
+
+	return 0;
 }
 
 //
