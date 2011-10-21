@@ -134,7 +134,8 @@ env_setup_vm(struct Env *e)
         // Initialize pgdir
 	memmove(e->env_pgdir, boot_pgdir, PGSIZE);
 
-	// TODO: Map memory
+	// TODO: Map memory - Sandy says that I said that memmove() takes
+	// care of everything.
 
 	// VPT and UVPT map the env's own page table, with
 	// different permissions.
