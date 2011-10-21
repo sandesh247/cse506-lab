@@ -6,6 +6,14 @@
 
 envid_t dumbfork(void);
 
+unsigned int getESP(void)
+{
+   unsigned int _esp;
+
+   asm ("mov %%esp, %0":"=r" (_esp));
+   return _esp;
+}
+
 void
 umain(void)
 {
@@ -15,11 +23,25 @@ umain(void)
 	// fork a child process
 	who = dumbfork();
 
+        char *va = (char*)(ROUNDDOWN(getESP() - PGSIZE, PGSIZE));
+        cprintf("va: %x, UTOP: %x\n", va, (void*)UTOP);
+        int r;
+        if (who) {
+            r = sys_page_alloc(0, va, PTE_W|PTE_U|PTE_P);
+            if (r) {
+                panic("dumbfork::sys_page_alloc::error: %e\n", r);
+            }
+        }
+
 	// print a message and yield to the other a few times
 	for (i = 0; i < (who ? 10 : 20); i++) {
 		cprintf("%d: I am the %s!\n", i, who ? "parent" : "child");
 		sys_yield();
 	}
+
+        if (!who) {
+            va[2] = 's';
+        }
 }
 
 void
@@ -44,6 +66,8 @@ dumbfork(void)
 	uint8_t *addr;
 	int r;
 	extern unsigned char end[];
+        cprintf("dumbfork::UTEXT: %x, end: %x, DIFF: %x\n", 
+                UTEXT, end, end - (unsigned char*)UTEXT);
 
 	// Allocate a new child environment.
 	// The kernel will initialize it with a copy of our register state,

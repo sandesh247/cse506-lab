@@ -196,7 +196,7 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 
 	if ((uint32_t)va > UTOP || 
 	    ROUNDDOWN((uint32_t)va, PGSIZE) != (uint32_t)va) {
-		DPRINTF4("VA > UTOP\n");
+		DPRINTF4("VA > UTOP OR VA is not Page Aligned\n");
 		return -E_INVAL;
 	}
 

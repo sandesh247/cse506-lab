@@ -67,7 +67,7 @@ duppage(envid_t envid, unsigned pn)
 	int page_perms = pentry & PTE_USER;
 	if (page_perms & (PTE_COW | PTE_W)) {
 		// Page is writable or COW...
-		page_perms = page_perms | PTE_COW & (~PTE_W);
+		page_perms = (page_perms | PTE_COW) & (~PTE_W);
 		r = sys_page_map(0, va, envid, va, page_perms);
 		RETURN_NON_ZERO(r, r);
 
@@ -86,30 +86,49 @@ duppage(envid_t envid, unsigned pn)
 envid_t
 clone(int shared_heap) {
 	envid_t new_env = sys_exofork();
+	int r;
+
+	if (new_env < 0) {
+		panic("sys_exofork: %e", envid);
+	}
 
 	if (new_env) {
 		// Parent
 
 		// Save old handler
-		_old_pgfault_handler = _pgfault_handler;
+		// _old_pgfault_handler = _pgfault_handler;
 
 		// Set page fault handler to COW handler
 		set_pgfault_handler(pgfault);
 
-		// Copy everything to the child
+		// Copy all the page tables to the child
+		uint8_t *addr;
+		for (addr = (uint8_t*) UTEXT; addr < end; addr += PGSIZE) {
+			if (shared_heap) {
+				// sfork() use-case
+			}
+			else {
+				// fork() use-case
+				duppage(new_env, addr/PGSIZE);
+			}
+		}
 
+		// Also copy the stack we are currently running on.
+		duppage(new_env, ROUNDDOWN(&addr, PGSIZE));
 
+		// Start the child environment running
+		if ((r = sys_env_set_status(new_env, ENV_RUNNABLE)) < 0) {
+			panic("sys_env_set_status: %e", r);
+		}
+
+		return new_env;
 	}
 	else {
 		// Child - do nothing here
+		env = &envs[ENVX(sys_getenvid())];
+		return 0;
 	}
 
-	if (shared_heap) {
-		// sfork() use-case
-	}
-	else {
-		// fork() use-case
-	}
 }
 
 //
@@ -132,8 +151,10 @@ envid_t
 fork(void)
 {
 	// LAB 4: Your code here.
-	panic("fork not implemented");
+	// panic("fork not implemented");
+	return clone(0);
 }
+
 
 // Challenge!
 int
