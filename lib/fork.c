@@ -3,12 +3,48 @@
 
 #include <inc/string.h>
 #include <inc/lib.h>
+#include <inc/mmu.h>
+#include <inc/x86.h>
+
 
 // PTE_COW marks copy-on-write page table entries.
 // It is one of the bits explicitly allocated to user processes (PTE_AVAIL).
 #define PTE_COW		0x800
 
+#define RETURN_NON_ZERO(r1, r2) 	if (r1) { return r2; }
+
+
 void (*_old_pgfault_handler)(struct UTrapframe *utf)  = NULL;
+
+
+// 
+// Copy a page at 'addr' in OUR address space to 'addr' in destid's address
+// space. Use *our* PFTEMP as a temporary buffer
+//
+void
+copypage(envid_t destid, void *addr, int perm) {
+	int r;
+	DPRINTF4("addr: %x, ROUNDDOWN(addr, %d): %x\n", addr, PGSIZE, ROUNDDOWN(addr, PGSIZE));
+	// assert(ROUNDDOWN(addr, PGSIZE) == addr);
+	addr = ROUNDDOWN(addr, PGSIZE);
+	// Map a page at PFTEMP in *our* address space
+	if((r = sys_page_alloc(0, PFTEMP, PTE_P | PTE_U | PTE_W)) < 0) {
+		panic("sys_page_alloc: %e", r);
+	}
+
+	// Copy contents from addr to PFTEMP
+	memmove(PFTEMP, addr, PGSIZE);
+
+	// Map *our* PFTEMP to destid's *addr*
+	if((r = sys_page_map(0, PFTEMP, destid, addr, perm)) < 0) {
+		panic("sys_page_map: %e", r);
+	}
+
+	if ((r = sys_page_unmap(0, PFTEMP)) < 0) {
+		panic("sys_page_unmap: %e", r);
+	}
+
+}
 
 //
 // Custom page fault handler - if faulting page is copy-on-write,
@@ -17,9 +53,12 @@ void (*_old_pgfault_handler)(struct UTrapframe *utf)  = NULL;
 static void
 pgfault(struct UTrapframe *utf)
 {
+	DPRINTF4("pgfault() called\n");
 	void *addr = (void *) utf->utf_fault_va;
 	uint32_t err = utf->utf_err;
 	int r;
+
+	cprintf("pgfault(va: %x, err: %d)\n", addr, err);
 
 	// Check that the faulting access was (1) a write, and (2) to a
 	// copy-on-write page.  If not, panic.
@@ -31,7 +70,7 @@ pgfault(struct UTrapframe *utf)
 
 	// maybe use constants FEC_* in mmu.h ?
 	if(!((err & 0x7) == 0x7)) {
-		panic("pgfault not due to a write violation.");
+		panic("pgfault error. write not set. Got: %d\n", (err & 0x7));
 	}
 
 	if(!(vpt[pn] & PTE_COW)) {
@@ -46,20 +85,13 @@ pgfault(struct UTrapframe *utf)
 	//   No need to explicitly delete the old page's mapping.
 
 	// LAB 4: Your code here.
-	if((r = sys_page_alloc(0, PFTEMP, PTE_P | PTE_U | PTE_W)) < 0) {
-		panic("sys_page_alloc: %e", r);
-	}
+	copypage(0, addr, (PTE_PERM(vpt[pn]) | PTE_W) & (~PTE_COW));
 
-	memmove(PFTEMP, addr, PGSIZE);
-
-	if((r = sys_page_map(0, PFTEMP, 0, addr, PTE_PERM(vpt[pn]) | PTE_W)) < 0) {
-		panic("sys_page_map: %e", r);
-	}
+	// Reload our own CR3 since we have changed on our own page tables
+	lcr3(env->env_cr3);
 
 	// panic("pgfault not implemented");
 }
-
-#define RETURN_NON_ZERO(r1, r2) 	if (r1) { return r2; }
 
 
 //
@@ -90,7 +122,12 @@ duppage(envid_t envid, unsigned pn)
 		RETURN_NON_ZERO(r, r);
 
 		// Also set self to COW
+		// uncomment: (works if we don't mess with our own mappings)
 		r = sys_page_map(0, va, 0, va, page_perms);
+		// uint32_t *ptable = vpt + pn;
+		// *ptable |= PTE_COW;
+		// *ptable &= (~PTE_W);
+
 		RETURN_NON_ZERO(r, r);
 	}
 	else {
@@ -103,47 +140,64 @@ duppage(envid_t envid, unsigned pn)
 
 envid_t
 clone(int shared_heap) {
+	DPRINTF4("clone(%d)\n", shared_heap);
+
+	// Save old handler
+	// _old_pgfault_handler = _pgfault_handler;
+
+	// Set page fault handler to COW handler
+	set_pgfault_handler(pgfault);
+	DPRINTF4("Successfully set the pgfault_handler\n");
+
 	envid_t new_env = sys_exofork();
 	int r;
+	DPRINTF4("clone::new_env: %d\n", new_env);
 
 	if (new_env < 0) {
-		panic("sys_exofork: %e", envid);
+		panic("sys_exofork: %e", new_env);
 	}
+
+	// return new_env;
 
 	if (new_env) {
 		// Parent
 
-		// Save old handler
-		// _old_pgfault_handler = _pgfault_handler;
-
-		// Set page fault handler to COW handler
-		set_pgfault_handler(pgfault);
-
 		// Copy all the page tables to the child
 		uint8_t *addr;
-		for (addr = (uint8_t*) UTEXT; addr < end; addr += PGSIZE) {
+		extern unsigned char end[];
+		for (addr = (uint8_t*) UTEXT; addr <= end /* Check < */; addr += PGSIZE) {
+			DPRINTF4("Copying address: %x\n", addr);
 			if (shared_heap) {
 				// sfork() use-case
 			}
 			else {
 				// fork() use-case
-				duppage(new_env, addr/PGSIZE);
+				duppage(new_env, ((uint32_t)addr)/PGSIZE);
 			}
 		}
 
+		DPRINTF4("RD(&addr): %x, USTACKTOP-PGSIZE: %x\n", ROUNDDOWN(&addr, PGSIZE), USTACKTOP-PGSIZE);
 		// Also copy the stack we are currently running on.
-		duppage(new_env, ROUNDDOWN(&addr, PGSIZE));
+		copypage(new_env, (void*)ROUNDDOWN(&addr, PGSIZE), PTE_P|PTE_W|PTE_U);
+
+		// Allocate a new trap-time stack.
+		copypage(new_env, (void*)(UXSTACKTOP - PGSIZE), PTE_P|PTE_W|PTE_U);
 
 		// Start the child environment running
+		/*
 		if ((r = sys_env_set_status(new_env, ENV_RUNNABLE)) < 0) {
 			panic("sys_env_set_status: %e", r);
-		}
+			}*/
 
+		// Reload our own CR3 since we *may* have changed permissions
+		// on our own page tables
+		// lcr3(env->env_cr3);
+		DPRINTF4("clone::returning: %d\n", new_env);
 		return new_env;
 	}
 	else {
 		// Child - do nothing here
-		env = &envs[ENVX(sys_getenvid())];
+		// env = &envs[ENVX(sys_getenvid())];
 		return 0;
 	}
 }

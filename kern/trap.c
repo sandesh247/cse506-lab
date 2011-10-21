@@ -303,7 +303,7 @@ page_fault_handler(struct Trapframe *tf)
 
 	// LAB 4: Your code here.
 
-	DPRINTF4("Page fault at address: %x, curenv: %x\n", fault_va, curenv);
+	DPRINTF4("Page fault at address: %x, curenv: %x, envid: %d, EIP: %x\n", fault_va, curenv, curenv->env_id, curenv->env_tf.tf_eip);
 	DPRINTF4("curenv->env_tf.tf_esp: %x, UXSTACKTOP - PGSIZE: %x, USTACKTOP: %x, UXSTACKTOP: %x\n", tf->tf_esp, UXSTACKTOP - PGSIZE, USTACKTOP, UXSTACKTOP);
 
 	struct Trapframe orig_tf = curenv->env_tf;
