@@ -15,6 +15,7 @@
 
 
 void (*_old_pgfault_handler)(struct UTrapframe *utf)  = NULL;
+extern void (*_pgfault_handler)(struct UTrapframe *utf);
 
 
 // 
@@ -28,6 +29,7 @@ copypage(envid_t destid, void *addr, int perm) {
 	// assert(ROUNDDOWN(addr, PGSIZE) == addr);
 	addr = ROUNDDOWN(addr, PGSIZE);
 	// Map a page at PFTEMP in *our* address space
+
 	if((r = sys_page_alloc(0, PFTEMP, PTE_P | PTE_U | PTE_W)) < 0) {
 		panic("sys_page_alloc: %e", r);
 	}
@@ -43,8 +45,8 @@ copypage(envid_t destid, void *addr, int perm) {
 	if ((r = sys_page_unmap(0, PFTEMP)) < 0) {
 		panic("sys_page_unmap: %e", r);
 	}
-	DPRINTF4("copypage::done!\n");
 
+	DPRINTF4("copypage::done!\n");
 }
 
 //
@@ -70,7 +72,8 @@ pgfault(struct UTrapframe *utf)
 	int pn = (uint32_t)addr / PGSIZE;
 
 	// maybe use constants FEC_* in mmu.h ?
-	if(!((err & 0x7) == 0x7)) {
+	// if(!((err & 0x7) == 0x7)) {
+	if (!(err & FEC_WR)) {
 		panic("pgfault error. write not set. Got: %d\n", (err & 0x7));
 	}
 
@@ -108,14 +111,23 @@ duppage(envid_t envid, unsigned pn)
 {
 	int r;
 
+	// copypage(envid, (void*)(pn*PGSIZE), PTE_U|PTE_P|PTE_W);
+	// return 0;
+
 	// LAB 4: Your code here.
 	// panic("duppage not implemented");
 	void *va = (void*)(pn*PGSIZE);
 	uint32_t pentry = vpt[pn];
-	int page_perms = pentry & PTE_USER;
+	int page_perms = PTE_PERM(pentry); // & PTE_USER;
 	if (page_perms & (PTE_COW | PTE_W)) {
 		// Page is writable or COW...
-		page_perms = (page_perms | PTE_COW) & (~PTE_W);
+		DPRINTF4("page_perms: %d\n", page_perms);
+		page_perms |= PTE_COW;
+		page_perms &= (~PTE_W);
+
+		// TODO: Remove the line below
+		page_perms = PTE_U|PTE_P|PTE_COW;
+
 		r = sys_page_map(0, va, envid, va, page_perms);
 		RETURN_NON_ZERO(r, r);
 
@@ -145,9 +157,14 @@ clone(int shared_heap) {
 	set_pgfault_handler(pgfault);
 	DPRINTF4("Successfully set the pgfault_handler in parent\n");
 
+	sys_yield();
+
+	envid_t cur_env = sys_getenvid();
 	envid_t new_env = sys_exofork();
 	int r;
 	DPRINTF4("clone::new_env: %d\n", new_env);
+
+	sys_yield();
 
 	if (new_env < 0) {
 		panic("sys_exofork: %e", new_env);
@@ -158,17 +175,29 @@ clone(int shared_heap) {
 	if (new_env) {
 		// Parent
 
+		sys_yield();
+
+		DPRINTF4("clone::[1] Parent: &_pgfault_handler: %x\n", &_pgfault_handler);
+
 		// Copy all the page tables to the child
 		uint8_t *addr;
 		extern unsigned char end[];
 		for (addr = (uint8_t*) UTEXT; addr <= end /* Check < */; addr += PGSIZE) {
-			DPRINTF4("Copying address: %x\n", addr);
-			if (shared_heap) {
+			DPRINTF4("[%d<-%d] Mapping page at address: %x\n", new_env, cur_env, addr);
+			if (0 /*shared_heap*/) {
 				// sfork() use-case
 			}
 			else {
 				// fork() use-case
-				duppage(new_env, ((uint32_t)addr)/PGSIZE);
+				if (1 && ROUNDDOWN((uint32_t)&_pgfault_handler, PGSIZE) == (uint32_t)addr) {
+					copypage(new_env, addr, (PTE_P|PTE_U|PTE_W));
+				}
+				else {
+					r = duppage(new_env, ((uint32_t)addr)/PGSIZE);
+					if (r) {
+						panic("duppage: %e\n");
+					}
+				}
 			}
 		}
 
@@ -178,6 +207,8 @@ clone(int shared_heap) {
 
 		// Allocate a new trap-time stack.
 		copypage(new_env, (void*)(UXSTACKTOP - PGSIZE), PTE_P|PTE_W|PTE_U);
+
+		sys_env_set_pgfault_upcall(new_env, _pgfault_upcall);
 
 		// Start the child environment running
 		if ((r = sys_env_set_status(new_env, ENV_RUNNABLE)) < 0) {
@@ -193,11 +224,11 @@ clone(int shared_heap) {
 		// set_pgfault_handler(pgfault);
 		// sys_env_set_pgfault_upcall(0, _pgfault_upcall);
 
-		cprintf("[1] In Child\n");
+		cprintf("[1] In Child (%d), _pgfault_handler: %x\n", sys_getenvid(), _pgfault_handler);
 		// Child - do nothing here
 		env = &envs[ENVX(sys_getenvid())];
 
-		cprintf("[2] In Child\n");
+		cprintf("[2] In Child (%d)\n", sys_getenvid());
 
 		return 0;
 	}

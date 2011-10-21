@@ -316,7 +316,7 @@ page_fault_handler(struct Trapframe *tf)
 
 			if (curenv->env_tf.tf_esp <= USTACKTOP) {
 				// we are in the normal user stack
-				DPRINTF4("No trap time stack allocated\n");
+				DPRINTF4("ESP does NOT point to the Trap-Time Stack\n");
 				curenv->env_tf.tf_esp = UXSTACKTOP - 4;
 
 				// First exception, w
@@ -337,8 +337,10 @@ page_fault_handler(struct Trapframe *tf)
 
 			curenv->env_tf.tf_eip = (uintptr_t) curenv->env_pgfault_upcall;
 			curenv->env_tf.tf_esp = (uintptr_t) utf;
-
-			DPRINTF4("page_fault_handler::about to run environment: %x\n", curenv);
+			
+			// DPRINTF4("Original Trapframe:\n");
+			// print_trapframe(&orig_tf);
+			DPRINTF4("page_fault_handler::about to run environment: %x, New EIP: %x, orig EIP: %x\n", curenv, curenv->env_tf.tf_eip, utf->utf_eip);
 			env_run(curenv);
 		}
 	} else {

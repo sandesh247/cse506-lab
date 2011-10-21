@@ -568,8 +568,9 @@ page_alloc(struct Page **pp_store)
 void
 page_free(struct Page *pp)
 {
-  assert(pp->pp_ref == 0);
-  LIST_INSERT_HEAD(&page_free_list, pp, pp_link);
+	assert(pp);
+	assert(pp->pp_ref == 0);
+	LIST_INSERT_HEAD(&page_free_list, pp, pp_link);
 }
 
 //
@@ -631,6 +632,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 
     // We set 'pte' to the start of the page table.
     pte = pgdir_walk(pgdir, va, 0) - PTX(va);
+    assert(ROUNDDOWN(pte, PGSIZE) == pte);
 
     // Zero out the page's contents
     memset((void*)pte, 0, PGSIZE);
@@ -707,9 +709,8 @@ page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm)
 		*pte = page_addr;
 		page_incref(pp);
 	} else {
-		DPRINTF("*pte == %x\n", *pte);
 		pprev = pa2page(*pte);
-		DPRINTF("pprev: %x\n", pprev);
+		DPRINTF("*pte == %x, pprev: %x\n", *pte, pprev);
 
 		if(pp == pprev) {
 		  // this va was mapped to this page wonly ...
@@ -775,7 +776,7 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
   if (pte_store) {
     *pte_store = pte;
   }
-  if(*pte & PTE_P) {
+  if (*pte & PTE_P) {
     return pa2page(PTE_ADDR(*pte));
   }
   return NULL;

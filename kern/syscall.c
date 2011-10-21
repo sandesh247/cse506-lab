@@ -87,14 +87,13 @@ sys_exofork(void)
 	// from the current environment -- but tweaked so sys_exofork
 	// will appear to return 0.
 
-	struct Env *ne, *e;
-	envid2env(0, &e, 0);
-	env_alloc(&ne, e->env_id);
+	struct Env *ne;
+	int r;
+	if ((r = env_alloc(&ne, curenv->env_id))) {
+		return r;
+	}
 
-	memmove(&(ne->env_tf), &(e->env_tf), sizeof(struct Trapframe));
-
-	// Copy reigsters
-	ne->env_tf.tf_regs = e->env_tf.tf_regs;
+	ne->env_tf = curenv->env_tf;
 
 	// Set return value to 0 in the child
 	ne->env_tf.tf_regs.reg_eax = 0;
@@ -103,7 +102,7 @@ sys_exofork(void)
 	ne->env_status = ENV_NOT_RUNNABLE;
 
 	// -CHECK- (doubtful)
-	ne->env_pgfault_upcall = e->env_pgfault_upcall;
+	// ne->env_pgfault_upcall = e->env_pgfault_upcall;
 
 	return ne->env_id;
 }
@@ -131,6 +130,9 @@ sys_env_set_status(envid_t envid, int status)
 	if (ret) {
 		return ret;
 	}
+	if (status != ENV_RUNNABLE && status != ENV_NOT_RUNNABLE) {
+		return -E_INVAL;
+	}
 	e->env_status = (unsigned)status;
 	return 0;
 }
@@ -148,6 +150,7 @@ sys_env_set_pgfault_upcall(envid_t envid, void *func)
 {
 	// LAB 4: Your code here.
 	// panic("sys_env_set_pgfault_upcall not implemented");
+	assert(func);
 
 	struct Env *e = NULL;
 	int ret = envid2env(envid, &e, 1);
@@ -155,7 +158,6 @@ sys_env_set_pgfault_upcall(envid_t envid, void *func)
 		return -E_BAD_ENV;
 	}
 
-	assert(func);
 	e->env_pgfault_upcall = func;
 	return 0;
 }
@@ -219,12 +221,14 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 
 	ret = page_insert(e->env_pgdir, page, va, perm);
 	if (ret) {
-		page_free(page);
+		// page_free(page);
+		page_decref(page);
 	}
 	DPRINTF4("sys_page_alloc::e: %x\n", e);
-	// lcr3(e->env_cr3);
-	// *((char*)va+10) = 20;
-	// lcr3(boot_cr3);
+       
+	// Set the page's contents to zero (0)
+	memset(va, 0, PGSIZE);
+
 	return ret;
 }
 
@@ -264,13 +268,18 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	error = envid2env(dstenvid, &de, 1);
 	if (error) return -E_BAD_ENV;
 
-	pte_t *spte;
-	struct Page *spp = page_lookup(se->env_pgdir, srcva, &spte);
-	if(spp == 0) {
+	if (((uint32_t)srcva >= UTOP || ((uint32_t)srcva % PGSIZE)) || 
+	    ((uint32_t)dstva >= UTOP || ((uint32_t)dstva % PGSIZE))) {
 		return -E_INVAL;
 	}
-	
-	if((PTE_W & perm) && !(PTE_W & (page2pa(spp) ^ (*spte)))) {
+
+	pte_t *spte;
+	struct Page *spp = page_lookup(se->env_pgdir, srcva, &spte);
+	if (spp == 0 || (*spte & PTE_P) == 0) {
+		return -E_INVAL;
+	}
+
+	if ((PTE_W & perm) && !(PTE_W & *spte)) {
 		return -E_INVAL;
 	}
 
@@ -308,6 +317,7 @@ sys_page_unmap(envid_t envid, void *va)
 	}
 
 	page_remove(e->env_pgdir, va);
+	return 0;
 }
 
 // Try to send 'value' to the target env 'envid'.
