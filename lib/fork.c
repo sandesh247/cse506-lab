@@ -24,7 +24,7 @@ void (*_old_pgfault_handler)(struct UTrapframe *utf)  = NULL;
 void
 copypage(envid_t destid, void *addr, int perm) {
 	int r;
-	DPRINTF4("addr: %x, ROUNDDOWN(addr, %d): %x\n", addr, PGSIZE, ROUNDDOWN(addr, PGSIZE));
+	DPRINTF4("copypage::addr: %x, ROUNDDOWN(addr, %d): %x\n", addr, PGSIZE, ROUNDDOWN(addr, PGSIZE));
 	// assert(ROUNDDOWN(addr, PGSIZE) == addr);
 	addr = ROUNDDOWN(addr, PGSIZE);
 	// Map a page at PFTEMP in *our* address space
@@ -43,6 +43,7 @@ copypage(envid_t destid, void *addr, int perm) {
 	if ((r = sys_page_unmap(0, PFTEMP)) < 0) {
 		panic("sys_page_unmap: %e", r);
 	}
+	DPRINTF4("copypage::done!\n");
 
 }
 
@@ -87,9 +88,6 @@ pgfault(struct UTrapframe *utf)
 	// LAB 4: Your code here.
 	copypage(0, addr, (PTE_PERM(vpt[pn]) | PTE_W) & (~PTE_COW));
 
-	// Reload our own CR3 since we have changed on our own page tables
-	lcr3(env->env_cr3);
-
 	// panic("pgfault not implemented");
 }
 
@@ -122,11 +120,7 @@ duppage(envid_t envid, unsigned pn)
 		RETURN_NON_ZERO(r, r);
 
 		// Also set self to COW
-		// uncomment: (works if we don't mess with our own mappings)
 		r = sys_page_map(0, va, 0, va, page_perms);
-		// uint32_t *ptable = vpt + pn;
-		// *ptable |= PTE_COW;
-		// *ptable &= (~PTE_W);
 
 		RETURN_NON_ZERO(r, r);
 	}
@@ -184,20 +178,16 @@ clone(int shared_heap) {
 		copypage(new_env, (void*)(UXSTACKTOP - PGSIZE), PTE_P|PTE_W|PTE_U);
 
 		// Start the child environment running
-		/*
 		if ((r = sys_env_set_status(new_env, ENV_RUNNABLE)) < 0) {
 			panic("sys_env_set_status: %e", r);
-			}*/
+		}
 
-		// Reload our own CR3 since we *may* have changed permissions
-		// on our own page tables
-		// lcr3(env->env_cr3);
 		DPRINTF4("clone::returning: %d\n", new_env);
 		return new_env;
 	}
 	else {
 		// Child - do nothing here
-		// env = &envs[ENVX(sys_getenvid())];
+		env = &envs[ENVX(sys_getenvid())];
 		return 0;
 	}
 }
