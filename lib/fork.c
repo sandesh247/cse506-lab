@@ -1,3 +1,4 @@
+// -*- c-basic-offset: 8; indent-tabs-mode: t -*-
 // implement fork from user space
 
 #include <inc/string.h>
@@ -6,6 +7,8 @@
 // PTE_COW marks copy-on-write page table entries.
 // It is one of the bits explicitly allocated to user processes (PTE_AVAIL).
 #define PTE_COW		0x800
+
+void (*_old_pgfault_handler)(struct UTrapframe *utf)  = NULL;
 
 //
 // Custom page fault handler - if faulting page is copy-on-write,
@@ -56,6 +59,9 @@ pgfault(struct UTrapframe *utf)
 	// panic("pgfault not implemented");
 }
 
+#define RETURN_NON_ZERO(r1, r2) 	if (r1) { return r2; }
+
+
 //
 // Map our virtual page pn (address pn*PGSIZE) into the target envid
 // at the same virtual address.  If the page is writable or copy-on-write,
@@ -73,8 +79,55 @@ duppage(envid_t envid, unsigned pn)
 	int r;
 
 	// LAB 4: Your code here.
-	panic("duppage not implemented");
+	// panic("duppage not implemented");
+	void *va = (void*)(pn*PGSIZE);
+	uint32_t pentry = vpt[pn];
+	int page_perms = pentry & PTE_USER;
+	if (page_perms & (PTE_COW | PTE_W)) {
+		// Page is writable or COW...
+		page_perms = page_perms | PTE_COW & (~PTE_W);
+		r = sys_page_map(0, va, envid, va, page_perms);
+		RETURN_NON_ZERO(r, r);
+
+		// Also set self to COW
+		r = sys_page_map(0, va, 0, va, page_perms);
+		RETURN_NON_ZERO(r, r);
+	}
+	else {
+		r = sys_page_map(0, va, envid, va, page_perms);
+		RETURN_NON_ZERO(r, r);
+	}
+
 	return 0;
+}
+
+envid_t
+clone(int shared_heap) {
+	envid_t new_env = sys_exofork();
+
+	if (new_env) {
+		// Parent
+
+		// Save old handler
+		_old_pgfault_handler = _pgfault_handler;
+
+		// Set page fault handler to COW handler
+		set_pgfault_handler(pgfault);
+
+		// Copy everything to the child
+
+
+	}
+	else {
+		// Child - do nothing here
+	}
+
+	if (shared_heap) {
+		// sfork() use-case
+	}
+	else {
+		// fork() use-case
+	}
 }
 
 //
