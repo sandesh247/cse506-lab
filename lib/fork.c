@@ -191,10 +191,13 @@ clone(int shared_heap) {
 		// Set page fault handler to COW handler in the child process
 		// The call below is suspect
 		// set_pgfault_handler(pgfault);
-		sys_env_set_pgfault_upcall(0, _pgfault_upcall);
+		// sys_env_set_pgfault_upcall(0, _pgfault_upcall);
 
+		cprintf("[1] In Child\n");
 		// Child - do nothing here
 		env = &envs[ENVX(sys_getenvid())];
+
+		cprintf("[2] In Child\n");
 
 		return 0;
 	}

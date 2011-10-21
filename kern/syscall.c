@@ -92,9 +92,18 @@ sys_exofork(void)
 	env_alloc(&ne, e->env_id);
 
 	memmove(&(ne->env_tf), &(e->env_tf), sizeof(struct Trapframe));
+
+	// Copy reigsters
+	ne->env_tf.tf_regs = e->env_tf.tf_regs;
+
+	// Set return value to 0 in the child
 	ne->env_tf.tf_regs.reg_eax = 0;
 
+	// ne->env_tf.tf_esp = e->env_tf.tf_esp;
 	ne->env_status = ENV_NOT_RUNNABLE;
+
+	// -CHECK- (doubtful)
+	ne->env_pgfault_upcall = e->env_pgfault_upcall;
 
 	return ne->env_id;
 }
