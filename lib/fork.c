@@ -132,6 +132,8 @@ duppage(envid_t envid, unsigned pn)
 	return 0;
 }
 
+extern void _pgfault_upcall(void);
+
 envid_t
 clone(int shared_heap) {
 	DPRINTF4("clone(%d)\n", shared_heap);
@@ -139,9 +141,9 @@ clone(int shared_heap) {
 	// Save old handler
 	// _old_pgfault_handler = _pgfault_handler;
 
-	// Set page fault handler to COW handler
+	// Set page fault handler to COW handler in the parent process
 	set_pgfault_handler(pgfault);
-	DPRINTF4("Successfully set the pgfault_handler\n");
+	DPRINTF4("Successfully set the pgfault_handler in parent\n");
 
 	envid_t new_env = sys_exofork();
 	int r;
@@ -186,8 +188,14 @@ clone(int shared_heap) {
 		return new_env;
 	}
 	else {
+		// Set page fault handler to COW handler in the child process
+		// The call below is suspect
+		// set_pgfault_handler(pgfault);
+		sys_env_set_pgfault_upcall(0, _pgfault_upcall);
+
 		// Child - do nothing here
 		env = &envs[ENVX(sys_getenvid())];
+
 		return 0;
 	}
 }

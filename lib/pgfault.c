@@ -41,12 +41,11 @@ set_pgfault_handler(void (*handler)(struct UTrapframe *utf))
 
 	DPRINTF4("Setting the _pgfault_upcall routine to: %x\n", _pgfault_upcall);
 	if (handler) {
-		if (!_pgfault_handler) {
-			int ret = sys_env_set_pgfault_upcall(0, _pgfault_upcall);
-			if (ret) {
-				panic("Could not set page fault upcall handler: %e\n", ret);
-				return;
-			}
+		DPRINTF4("set_pgfault_handler::setting upcall to _pgfault_upcall\n");
+		int ret = sys_env_set_pgfault_upcall(0, _pgfault_upcall);
+		if (ret) {
+			panic("Could not set page fault upcall handler: %e\n", ret);
+			return;
 		}
 	}
 	else {
