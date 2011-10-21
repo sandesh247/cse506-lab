@@ -26,8 +26,17 @@ pgfault(struct UTrapframe *utf)
 	// Hint:
 	//   Use the read-only page table mappings at vpt
 	//   (see <inc/memlayout.h>).
-
 	// LAB 4: Your code here.
+	int pn = (uint32_t)addr / PGSIZE;
+
+	// maybe use constants FEC_* in mmu.h ?
+	if(!((err & 0x7) == 0x7)) {
+		panic("pgfault not due to a write violation.");
+	}
+
+	if(!(vpt[pn] & PTE_COW)) {
+		panic("write fault on a non-COW page");
+	}
 
 	// Allocate a new page, map it at a temporary location (PFTEMP),
 	// copy the data from the old page to the new page, then move the new
@@ -37,8 +46,17 @@ pgfault(struct UTrapframe *utf)
 	//   No need to explicitly delete the old page's mapping.
 
 	// LAB 4: Your code here.
+	if((r = sys_page_alloc(0, PFTEMP, PTE_P | PTE_U | PTE_W)) < 0) {
+		panic("sys_page_alloc: %e", r);
+	}
 
-	panic("pgfault not implemented");
+	memmove(PFTEMP, addr, PGSIZE);
+
+	if((r = sys_page_map(0, PFTEMP, 0, addr, PTE_PERM(vpt[pn]) | PTE_W)) < 0) {
+		panic("sys_page_map: %e", r);
+	}
+
+	// panic("pgfault not implemented");
 }
 
 #define RETURN_NON_ZERO(r1, r2) 	if (r1) { return r2; }
@@ -128,7 +146,6 @@ clone(int shared_heap) {
 		env = &envs[ENVX(sys_getenvid())];
 		return 0;
 	}
-
 }
 
 //
