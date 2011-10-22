@@ -540,7 +540,7 @@ env_run(struct Env *e)
 		curenv = e;
 		++(e->env_runs);
 	}
-	
+
 	lcr3(e->env_cr3);
 
 	DPRINTF("About to pop Trapframe (%x), EIP: %x\n", &(e->env_tf), e->env_tf.tf_eip);

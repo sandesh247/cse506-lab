@@ -39,9 +39,6 @@ umain(void)
 		sys_yield();
 	}
 
-        if (!who) {
-            va[2] = 's';
-        }
 }
 
 void

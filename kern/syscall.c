@@ -223,10 +223,11 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	if (ret) {
 		page_decref(page);
 	}
-	DPRINTF4("sys_page_alloc::e: %x\n", e);
+	DPRINTF4("sys_page_alloc::e: %x, va: %x\n", e, va);
 
-	// Set the page's contents to zero (0)
+	lcr3(e->env_cr3);
 	memset(va, 0, PGSIZE);
+	lcr3(curenv->env_cr3);
 
 	return ret;
 }
@@ -397,40 +398,50 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	case SYS_cputs:
 		sys_cputs((const char*)a1, (size_t)a2);
 		return 0;
+		break;
 
 	case SYS_cgetc:
 		return sys_cgetc();
+		break;
 
 	case SYS_getenvid:
 		return sys_getenvid();
+		break;
 
 	case SYS_env_destroy:
 		return sys_env_destroy((envid_t)a1);
-	
+		break;
+
 	case SYS_yield:
 		sys_yield();
 		return 0;
+		break;
 
         case SYS_exofork:
 		return sys_exofork();
+		break;
 
 	case SYS_page_alloc:
 		return (int32_t)sys_page_alloc((envid_t)a1, (void*)a2, (int)a3);
+		break;
 
 	case SYS_page_map:
 		return sys_page_map((envid_t)a1, (void*)a2, 
 				    (envid_t)a3, (void*)a4, (int)a5);
+		break;
 
 	case SYS_page_unmap:
 		return sys_page_map((envid_t)a1, (void*)a2, 
 				    (envid_t)a3, (void*)a4, (int)a5);
+		break;
 
 	case SYS_env_set_status:
 		return sys_env_set_status((envid_t)a1, (int)a2);
+		break;
 
 	case SYS_env_set_pgfault_upcall:
 		return sys_env_set_pgfault_upcall((envid_t)a1, (void*)a2);
-
+		break;
 	}
 
 	DPRINTF4("syscall number '%d' not yet implemented\n", syscallno);
