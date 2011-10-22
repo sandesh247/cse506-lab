@@ -63,7 +63,7 @@ pgfault(struct UTrapframe *utf)
 	uint32_t err = utf->utf_err;
 	int r;
 
-	cprintf("pgfault(va: %x, err: %d)\n", addr, err);
+	DPRINTF4("pgfault(va: %x, err: %d)\n", addr, err);
 
 	// Check that the faulting access was (1) a write, and (2) to a
 	// copy-on-write page.  If not, panic.
@@ -132,9 +132,6 @@ duppage(envid_t envid, unsigned pn)
 		page_perms |= PTE_COW;
 		page_perms &= (~PTE_W);
 
-		// TODO: Remove the line below
-		page_perms = PTE_U|PTE_P|PTE_COW;
-
 		r = sys_page_map(0, va, envid, va, page_perms);
 		RETURN_NON_ZERO(r, r);
 
@@ -153,7 +150,6 @@ duppage(envid_t envid, unsigned pn)
 
 
 extern void _pgfault_upcall(void);
-int ctr = 0;
 
 envid_t
 clone(int shared_heap) {
@@ -169,14 +165,10 @@ clone(int shared_heap) {
 	set_pgfault_handler(pgfault);
 	DPRINTF4("Successfully set the pgfault_handler in parent\n");
 
-	// sys_yield();
-
 	envid_t cur_env = sys_getenvid();
 	envid_t new_env = sys_exofork();
 	int r;
 	DPRINTF4("clone::new_env: %d\n", new_env);
-
-	// sys_yield();
 
 	if (new_env < 0) {
 		panic("sys_exofork: %e", new_env);
@@ -222,11 +214,9 @@ clone(int shared_heap) {
 		// Set the upcall in the child process.
 		sys_env_set_pgfault_upcall(new_env, _pgfault_upcall);
 
-		if (++ctr > 0) {
-			// Start the child environment running
-			if ((r = sys_env_set_status(new_env, ENV_RUNNABLE)) < 0) {
-				panic("sys_env_set_status: %e", r);
-			}
+		// Start the child environment running
+		if ((r = sys_env_set_status(new_env, ENV_RUNNABLE)) < 0) {
+			panic("sys_env_set_status: %e", r);
 		}
 
 		DPRINTF4("clone::returning: %d\n", new_env);
