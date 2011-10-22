@@ -252,11 +252,7 @@ segment_alloc(struct Env *e, void *va, size_t len)
 			panic("FAILED to allocate a page (%e). We can't expect much more", fail);
 			return;
 		}
-
-		physaddr_t addr = page2pa(newp);
-		pte = pgdir_walk(e->env_pgdir, (const void*)mem, 1);
-		// DPRINTF("VA %x is now backed by physical page at address %x\n", mem, addr);
-		pte[0] = addr | PTE_W | PTE_P | PTE_U;
+		page_insert(e->env_pgdir, newp, (void*)mem, PTE_W | PTE_P | PTE_U);
 	}
 	DPRINTF("segment_alloc::done allocating segments\n");
 }
@@ -398,9 +394,9 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
-	DPRINTF("Before loading CR3 with old_cr3 %u\n", PADDR(boot_pgdir));
+	DPRINTF("Before loading CR3 with old_cr3 %u\n", old_cr3);
 	lcr3((uint32_t)old_cr3);
-	DPRINTF("After loading CR3 with old_cr3 %u\n", PADDR(boot_pgdir));
+	DPRINTF("After loading CR3 with old_cr3 %u\n", old_cr3);
 }
 
 //

@@ -221,12 +221,12 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 
 	ret = page_insert(e->env_pgdir, page, va, perm);
 	if (ret) {
-		page_decref(page);
+		// page_decref(page);
 	}
 	DPRINTF4("sys_page_alloc::e: %x, va: %x\n", e, va);
 
 	lcr3(e->env_cr3);
-	memset(va, 0, PGSIZE);
+	// memset(va, 0, PGSIZE);
 	lcr3(curenv->env_cr3);
 
 	return ret;
@@ -258,7 +258,9 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	//   parameters for correctness.
 	//   Use the third argument to page_lookup() to
 	//   check the current permissions on the page.
-	
+
+	cprintf("sys_page_map(%d, %x, %d, %x, %d)\n", 
+		srcenvid, srcva, dstenvid, dstva, perm);
 	struct Env *se, *de;
 	int error;
 
@@ -431,8 +433,7 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		break;
 
 	case SYS_page_unmap:
-		return sys_page_map((envid_t)a1, (void*)a2, 
-				    (envid_t)a3, (void*)a4, (int)a5);
+		return sys_page_unmap((envid_t)a1, (void*)a2);
 		break;
 
 	case SYS_env_set_status:

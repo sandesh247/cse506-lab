@@ -37,6 +37,8 @@ copypage(envid_t destid, void *addr, int perm) {
 	// Copy contents from addr to PFTEMP
 	memmove(PFTEMP, addr, PGSIZE);
 
+	cprintf("&copypage: %x, addr: %x\n", &copypage, addr);
+
 	// Map *our* PFTEMP to destid's *addr*
 	if((r = sys_page_map(0, PFTEMP, destid, addr, PTE_W|PTE_P|PTE_U /*perm*/)) < 0) {
 		panic("sys_page_map: %e", r);
@@ -151,6 +153,7 @@ duppage(envid_t envid, unsigned pn)
 
 
 extern void _pgfault_upcall(void);
+int ctr = 0;
 
 envid_t
 clone(int shared_heap) {
@@ -166,14 +169,14 @@ clone(int shared_heap) {
 	set_pgfault_handler(pgfault);
 	DPRINTF4("Successfully set the pgfault_handler in parent\n");
 
-	sys_yield();
+	// sys_yield();
 
 	envid_t cur_env = sys_getenvid();
 	envid_t new_env = sys_exofork();
 	int r;
 	DPRINTF4("clone::new_env: %d\n", new_env);
 
-	sys_yield();
+	// sys_yield();
 
 	if (new_env < 0) {
 		panic("sys_exofork: %e", new_env);
@@ -184,7 +187,7 @@ clone(int shared_heap) {
 	if (new_env) {
 		// Parent
 
-		sys_yield();
+		// sys_yield();
 
 		DPRINTF4("clone::[1] Parent: _pgfault_handler: %x\n", _pgfault_handler);
 
@@ -198,15 +201,14 @@ clone(int shared_heap) {
 			}
 			else {
 				// fork() use-case
-				if (1 || ROUNDDOWN((uint32_t)&_pgfault_handler, PGSIZE) == (uint32_t)addr) {
-					copypage(new_env, addr, (PTE_P|PTE_U|PTE_W));
+#if 0
+				copypage(new_env, addr, (PTE_P|PTE_U|PTE_W));
+#else
+				r = duppage(new_env, ((uint32_t)addr)/PGSIZE);
+				if (r) {
+					panic("duppage: %e\n");
 				}
-				else {
-					r = duppage(new_env, ((uint32_t)addr)/PGSIZE);
-					if (r) {
-						panic("duppage: %e\n");
-					}
-				}
+#endif
 			}
 		}
 
@@ -220,9 +222,11 @@ clone(int shared_heap) {
 		// Set the upcall in the child process.
 		sys_env_set_pgfault_upcall(new_env, _pgfault_upcall);
 
-		// Start the child environment running
-		if ((r = sys_env_set_status(new_env, ENV_RUNNABLE)) < 0) {
-			panic("sys_env_set_status: %e", r);
+		if (++ctr > 0) {
+			// Start the child environment running
+			if ((r = sys_env_set_status(new_env, ENV_RUNNABLE)) < 0) {
+				panic("sys_env_set_status: %e", r);
+			}
 		}
 
 		DPRINTF4("clone::returning: %d\n", new_env);
