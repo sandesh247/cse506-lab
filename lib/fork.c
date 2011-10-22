@@ -38,7 +38,7 @@ copypage(envid_t destid, void *addr, int perm) {
 	memmove(PFTEMP, addr, PGSIZE);
 
 	// Map *our* PFTEMP to destid's *addr*
-	if((r = sys_page_map(0, PFTEMP, destid, addr, perm)) < 0) {
+	if((r = sys_page_map(0, PFTEMP, destid, addr, PTE_W|PTE_P|PTE_U /*perm*/)) < 0) {
 		panic("sys_page_map: %e", r);
 	}
 
@@ -89,7 +89,12 @@ pgfault(struct UTrapframe *utf)
 	//   No need to explicitly delete the old page's mapping.
 
 	// LAB 4: Your code here.
-	copypage(0, addr, (PTE_PERM(vpt[pn]) | PTE_W) & (~PTE_COW));
+	int eid = sys_getenvid();
+	// DPRINTF4("pgfault::envid: %d, env: %x\n", eid, &envs[ENVX(eid)]);
+	int perm = PTE_U|PTE_W|PTE_P; 
+	// (PTE_PERM(vpt[pn]) | PTE_W) & (~PTE_COW);
+	DPRINTF4("pgfault::Copying page at address: %x with permissions %d\n", addr, perm);
+	copypage(0, addr, perm);
 
 	// panic("pgfault not implemented");
 }
@@ -144,11 +149,15 @@ duppage(envid_t envid, unsigned pn)
 	return 0;
 }
 
+
 extern void _pgfault_upcall(void);
 
 envid_t
 clone(int shared_heap) {
-	DPRINTF4("clone(%d)\n", shared_heap);
+	DPRINTF4("clone(%d), PFTEMP: %x\n", shared_heap, PFTEMP);
+
+	int eid = sys_getenvid();
+	DPRINTF4("clone::envid: %d, env: %x\n", eid, &envs[ENVX(eid)]);
 
 	// Save old handler
 	// _old_pgfault_handler = _pgfault_handler;
@@ -177,7 +186,7 @@ clone(int shared_heap) {
 
 		sys_yield();
 
-		DPRINTF4("clone::[1] Parent: &_pgfault_handler: %x\n", &_pgfault_handler);
+		DPRINTF4("clone::[1] Parent: _pgfault_handler: %x\n", _pgfault_handler);
 
 		// Copy all the page tables to the child
 		uint8_t *addr;
@@ -189,7 +198,7 @@ clone(int shared_heap) {
 			}
 			else {
 				// fork() use-case
-				if (1 && ROUNDDOWN((uint32_t)&_pgfault_handler, PGSIZE) == (uint32_t)addr) {
+				if (1 || ROUNDDOWN((uint32_t)&_pgfault_handler, PGSIZE) == (uint32_t)addr) {
 					copypage(new_env, addr, (PTE_P|PTE_U|PTE_W));
 				}
 				else {
@@ -208,6 +217,7 @@ clone(int shared_heap) {
 		// Allocate a new trap-time stack.
 		copypage(new_env, (void*)(UXSTACKTOP - PGSIZE), PTE_P|PTE_W|PTE_U);
 
+		// Set the upcall in the child process.
 		sys_env_set_pgfault_upcall(new_env, _pgfault_upcall);
 
 		// Start the child environment running
@@ -219,12 +229,8 @@ clone(int shared_heap) {
 		return new_env;
 	}
 	else {
-		// Set page fault handler to COW handler in the child process
-		// The call below is suspect
-		// set_pgfault_handler(pgfault);
-		// sys_env_set_pgfault_upcall(0, _pgfault_upcall);
-
 		cprintf("[1] In Child (%d), _pgfault_handler: %x\n", sys_getenvid(), _pgfault_handler);
+
 		// Child - do nothing here
 		env = &envs[ENVX(sys_getenvid())];
 

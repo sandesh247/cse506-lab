@@ -221,11 +221,10 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 
 	ret = page_insert(e->env_pgdir, page, va, perm);
 	if (ret) {
-		// page_free(page);
 		page_decref(page);
 	}
 	DPRINTF4("sys_page_alloc::e: %x\n", e);
-       
+
 	// Set the page's contents to zero (0)
 	memset(va, 0, PGSIZE);
 

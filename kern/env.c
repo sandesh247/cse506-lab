@@ -127,7 +127,7 @@ env_setup_vm(struct Env *e)
 	//    - The functions in kern/pmap.h are handy.
 
 	// LAB 3: Your code here.
-	p->pp_ref = 1;
+	p->pp_ref++;
 	e->env_pgdir = page2kva(p);
 	e->env_cr3 = page2pa(p);
 
@@ -331,6 +331,7 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 		return;
 	}
 
+	pde_t *old_cr3 = (pde_t*)rcr3();
 	DPRINTF("Before loading CR3 with %u\n", e->env_cr3);
 	lcr3(e->env_cr3);
 	DPRINTF("After loading CR3 with %u\n", e->env_cr3);
@@ -392,16 +393,14 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 	e->env_tf.tf_eip = (elf->e_entry & 0xFFFFFF);
 	assert(e->env_tf.tf_eip != 0);
 
-	DPRINTF("Before loading CR3 with (boot_pgdir) %u\n", PADDR(boot_pgdir));
-	lcr3(PADDR(boot_pgdir));
-	DPRINTF("After loading CR3 with (boot_pgdir) %u\n", PADDR(boot_pgdir));
-
-	// Now map one page for the program's initial stack
-	// at virtual address USTACKTOP - PGSIZE.
-
 	// LAB 3: Your code here.
 	segment_alloc(e, (void*)(USTACKTOP - PGSIZE), PGSIZE);
 
+	// Now map one page for the program's initial stack
+	// at virtual address USTACKTOP - PGSIZE.
+	DPRINTF("Before loading CR3 with old_cr3 %u\n", PADDR(boot_pgdir));
+	lcr3((uint32_t)old_cr3);
+	DPRINTF("After loading CR3 with old_cr3 %u\n", PADDR(boot_pgdir));
 }
 
 //
@@ -540,8 +539,9 @@ env_run(struct Env *e)
 	if(curenv != e) {
 		curenv = e;
 		++(e->env_runs);
-		lcr3(e->env_cr3);
 	}
+	
+	lcr3(e->env_cr3);
 
 	DPRINTF("About to pop Trapframe (%x), EIP: %x\n", &(e->env_tf), e->env_tf.tf_eip);
 	env_pop_tf(&(e->env_tf));

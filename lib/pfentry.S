@@ -94,7 +94,7 @@ _pgfault_upcall:
         movl 48(%eax), %esp // Restore to previous stack
 
         pushl 44(%eax) // the flags
-        popf // Restore flags
+        popfl // Restore flags
 
         push 40(%eax) // Push trap-time %eip on to the stack
 

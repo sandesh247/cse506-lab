@@ -716,7 +716,6 @@ page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm)
 		  // this va was mapped to this page wonly ...
 		  // The permissions may change. handle this case.
 		  pte[0] = page_addr;
-
 		} else {
 			if (*pte) {
 				DPRINTF("page_insert::removing page at VA: %x\n", va);
@@ -725,10 +724,9 @@ page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm)
 			*pte = page_addr;
 			page_incref(pp);
 		}
-		
-		tlb_invalidate(pgdir, va);
 	}
 
+	tlb_invalidate(pgdir, va);
 	DPRINTF("page_insert returning: 0 (SUCCESS)\n");
 	return 0;
 }
