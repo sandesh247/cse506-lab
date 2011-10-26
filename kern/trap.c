@@ -45,6 +45,12 @@ extern void t_simderr();
 extern void t_syscall();
 extern void t_default();
 
+extern void irq_timer();
+extern void irq_kbd();
+extern void irq_serial();
+extern void irq_spurious();
+extern void irq_ide();
+
 
 static const char *trapname(int trapno)
 {
@@ -120,10 +126,17 @@ idt_init(void)
         SETGATE(idt[T_SYSCALL], 1, GD_KT, t_syscall, 3);
         SETGATE(idt[T_DEFAULT], 1, GD_KT, t_default, 0);
 
+
+        SETGATE(idt[IRQ_OFFSET + IRQ_TIMER], 0, GD_KT, irq_timer, 0);
+        SETGATE(idt[IRQ_OFFSET + IRQ_KBD], 0, GD_KT, irq_kbd, 0);
+        SETGATE(idt[IRQ_OFFSET + IRQ_SERIAL], 0, GD_KT, irq_serial, 0);
+        SETGATE(idt[IRQ_OFFSET + IRQ_SPURIOUS], 0, GD_KT, irq_spurious, 0);
+        SETGATE(idt[IRQ_OFFSET + IRQ_IDE], 0, GD_KT, irq_ide, 0);
 	// Setup a TSS so that we get the right stack
 	// when we trap to the kernel.
 	ts.ts_esp0 = KSTACKTOP;
 	ts.ts_ss0 = GD_KD;
+	ts.ts_eflags = 0;
 
 	// Initialize the TSS field of the gdt.
 	gdt[GD_TSS >> 3] = SEG16(STS_T32A, (uint32_t) (&ts),
@@ -174,6 +187,10 @@ trap_dispatch(struct Trapframe *tf)
 	
 	// Handle clock interrupts.
 	// LAB 4: Your code here.
+	if(tf->tf_trapno == IRQ_OFFSET + IRQ_TIMER) {
+		DPRINTF4C("Handling timer interrrupt\n");
+		sched_yield();
+	}
 
 	// Handle spurious interrupts
 	// The hardware sometimes raises these because of noise on the
@@ -183,8 +200,6 @@ trap_dispatch(struct Trapframe *tf)
 		print_trapframe(tf);
 		return;
 	}
-
-	DPRINTF("trap_dispatch(%x):tf_trapno: %d\n", tf, tf->tf_trapno);
 
 	if (tf->tf_trapno == T_PGFLT) {
 		page_fault_handler(tf);
@@ -202,10 +217,12 @@ trap_dispatch(struct Trapframe *tf)
 	}
 
 	// Unexpected trap: The user process or the kernel has a bug.
+	DPRINTF4C("trap_dispatch(%x):tf_trapno: %d\n", tf, tf->tf_trapno);
 	print_trapframe(tf);
 	if (tf->tf_cs == GD_KT)
 		panic("unhandled trap in kernel");
 	else {
+		DPRINTF4C("Destroying environment.\n");
 		env_destroy(curenv);
 		return;
 	}
