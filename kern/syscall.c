@@ -259,7 +259,7 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	//   Use the third argument to page_lookup() to
 	//   check the current permissions on the page.
 
-	cprintf("sys_page_map(%d, %x, %d, %x, %d)\n", 
+	DPRINTF("sys_page_map(%d, %x, %d, %x, %d)\n", 
 		srcenvid, srcva, dstenvid, dstva, perm);
 	struct Env *se, *de;
 	int error;

@@ -37,7 +37,7 @@ copypage(envid_t destid, void *addr, int perm) {
 	// Copy contents from addr to PFTEMP
 	memmove(PFTEMP, addr, PGSIZE);
 
-	cprintf("&copypage: %x, addr: %x\n", &copypage, addr);
+	DPRINTF4("&copypage: %x, addr: %x\n", &copypage, addr);
 
 	// Map *our* PFTEMP to destid's *addr*
 	if((r = sys_page_map(0, PFTEMP, destid, addr, PTE_W|PTE_P|PTE_U /*perm*/)) < 0) {

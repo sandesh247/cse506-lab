@@ -581,7 +581,7 @@ page_free(struct Page *pp)
 void
 page_decref(struct Page* pp)
 {
-	cprintf("page_decref::pp_ref: %d\n", pp->pp_ref);
+	DPRINTF("page_decref::pp_ref: %d\n", pp->pp_ref);
 	if (--pp->pp_ref == 0) {
 		DPRINTF("page_decref::freeing page at %x\n", pp); 
 		page_free(pp);
@@ -690,7 +690,7 @@ page_incref(struct Page *pp) {
 int
 page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm) 
 {
-	cprintf("page_insert(%x, %x, %x, %d)\n", pgdir, pp, va, perm);
+	DPRINTF("page_insert(%x, %x, %x, %d)\n", pgdir, pp, va, perm);
 	struct Page *pprev;
 	pte_t *pte; 
 
@@ -800,7 +800,7 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 void
 page_remove(pde_t *pgdir, void *va)
 {
-	cprintf("page_remove::envid: %d, va: %x\n", curenv->env_id, va);
+	DPRINTF("page_remove::envid: %d, va: %x\n", curenv->env_id, va);
 	struct Page* cp;
 	pte_t* pte;
 
