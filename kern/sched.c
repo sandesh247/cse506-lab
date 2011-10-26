@@ -20,16 +20,18 @@ sched_yield(void)
 	// unless NOTHING else is runnable.
 
 	// LAB 4: Your code here.
-	int i = (curenv ? curenv - envs : 1);
+	int i = (curenv ? curenv - envs + 1 : 1);
 	for(; i < NENV; ++i) {
 		if(envs[i].env_status == ENV_RUNNABLE) {
+			DPRINTF4C("Scheduling envid %d.\n", envs[i].env_id);
 			env_run(&envs[i]);
 		}
 	}
 
-	int _i = (curenv ? curenv - envs : NENV);
+	int _i = (curenv ? curenv - envs + 1: NENV);
 	for(i = 1; i < _i; ++i) {
 		if(envs[i].env_status == ENV_RUNNABLE) {
+			DPRINTF4C("Scheduling envid %d.\n", envs[i].env_id);
 			env_run(&envs[i]);
 		}
 	}
