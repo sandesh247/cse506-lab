@@ -363,8 +363,77 @@ sys_page_unmap(envid_t envid, void *va)
 static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
+	assert(envid);
 	// LAB 4: Your code here.
-	panic("sys_ipc_try_send not implemented");
+	// panic("sys_ipc_try_send not implemented");
+	
+	DPRINTF4C("Trying to send message from %d to %d.\n", curenv->env_id, envid);
+	
+	struct Env *env;
+	int error;
+
+	if((error = envid2env(envid, &env, 0)) < 0) {
+		DPRINTF4C("Bad environment %d.\n", envid);
+		return -E_BAD_ENV;
+	}
+
+	if(!env->env_ipc_recving) {
+		DPRINTF4C("Bad environment %d - not receiving.\n", envid);
+		return -E_IPC_NOT_RECV;
+	}
+
+	env->env_ipc_value = value;
+	
+	if((uint32_t) env->env_ipc_dstva < UTOP && (uint32_t) env->env_ipc_dstva >= 0) {
+		DPRINTF4C("Environment %d looking for mapping in %x.\n", envid, env->env_ipc_dstva);
+		
+		if(srcva && (uint32_t) srcva > UTOP) {
+			DPRINTF4C("Bad va %x for environment %d.\n", srcva, curenv->env_id);
+			return -E_INVAL;
+		}
+
+		if(ROUNDDOWN(srcva, PGSIZE) != srcva) {
+			DPRINTF4C("Bad va %x for environment %d.\n", srcva, curenv->env_id);
+			return -E_INVAL;
+		}
+
+		// if ((perm & (PTE_P | PTE_U)) != (PTE_P|PTE_U)) {
+		//	return -E_INVAL;
+		//}
+		
+		//if (perm & ~PTE_USER) {
+	//		return -E_INVAL;
+	//	}
+		
+		pte_t *spte;
+		struct Page *spp;
+		
+		spp = page_lookup(curenv->env_pgdir, srcva, &spte);
+		if (spp == 0 || (*spte & PTE_P) == 0) {
+			DPRINTF4C("Bad va %x for environment %d: Not mapped.\n", srcva, curenv->env_id);
+			return -E_INVAL;
+		}
+
+		if(perm & PTE_W && !(*spte & PTE_W)) {
+			DPRINTF4C("Bad va %x for environment %d: permission mismatch.\n", srcva, curenv->env_id);
+			return -E_INVAL;
+		}
+
+		env->env_ipc_value = (uint32_t) srcva;
+	}
+
+	// TODO: How do we check for no memory? We are sharing a page.
+	
+	env->env_ipc_recving = 0;
+	env->env_ipc_from = curenv->env_id;
+	env->env_ipc_perm = perm;
+
+	env->env_tf.tf_regs.reg_eax = 0;
+	DPRINTF4C("Value sent - setting %d to runnable.\n", envid);
+	DPRINTF4C("from, perm, value: %d, %d, %d.\n", env->env_ipc_from, env->env_ipc_perm, env->env_ipc_value);
+	sys_env_set_status(envid, ENV_RUNNABLE);
+
+	return 0;
 }
 
 // Block until a value is ready.  Record that you want to receive
@@ -382,7 +451,17 @@ static int
 sys_ipc_recv(void *dstva)
 {
 	// LAB 4: Your code here.
-	panic("sys_ipc_recv not implemented");
+	//
+	DPRINTF4C("Environment %d looking for data on %x.\n", curenv->env_id, dstva);
+	
+	curenv->env_ipc_recving = 1;
+	curenv->env_ipc_dstva = dstva;
+	sys_env_set_status(0, ENV_NOT_RUNNABLE);
+	DPRINTF4C("Blocking on sys_recv: %d.\n", curenv->env_id);
+	sys_yield();
+
+	// never called
+	assert(0);
 	return 0;
 }
 
@@ -443,6 +522,13 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	case SYS_env_set_pgfault_upcall:
 		return sys_env_set_pgfault_upcall((envid_t)a1, (void*)a2);
 		break;
+	
+	case SYS_ipc_recv:
+		return sys_ipc_recv((void *) a1);
+
+	case SYS_ipc_try_send:
+		return sys_ipc_try_send((envid_t) a1, (uint32_t) a2, (void *) a3, (int) a4);
+
 	}
 
 	DPRINTF4("syscall number '%d' not yet implemented\n", syscallno);

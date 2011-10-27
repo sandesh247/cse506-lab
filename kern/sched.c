@@ -37,8 +37,10 @@ sched_yield(void)
 	}
 
 	// Run the special idle environment when nothing else is runnable.
-	if (envs[0].env_status == ENV_RUNNABLE)
+	if (envs[0].env_status == ENV_RUNNABLE) {
+		DPRINTF4C("scheduling monitor environment.\n");
 		env_run(&envs[0]);
+	}
 	else {
 		cprintf("Destroyed all environments - nothing more to do!\n");
 		while (1)
