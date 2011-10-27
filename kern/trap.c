@@ -103,28 +103,28 @@ idt_init(void)
         // DPRINTF("addressof(h_debug) = %x\n", h_debug);
 
 	// LAB 3: Your code here.
-        SETGATE(idt[T_DIVIDE], 1, GD_KT, h_divide, 0);
-        SETGATE(idt[T_DEBUG], 1, GD_KT, h_debug, 3);
-        SETGATE(idt[T_NMI], 1, GD_KT, h_nmig, 0);
-        SETGATE(idt[T_BRKPT], 1, GD_KT, h_brkptg, 3);
-        SETGATE(idt[T_OFLOW], 1, GD_KT, h_oflowg, 0);
-        SETGATE(idt[T_BOUND], 1, GD_KT, h_boundg, 0);
-        SETGATE(idt[T_ILLOP], 1, GD_KT, h_illopg, 0);
-        SETGATE(idt[T_DEVICE], 1, GD_KT, h_deviceg, 0);
+        SETGATE(idt[T_DIVIDE], 0, GD_KT, h_divide, 0);
+        SETGATE(idt[T_DEBUG], 0, GD_KT, h_debug, 3);
+        SETGATE(idt[T_NMI], 0, GD_KT, h_nmig, 0);
+        SETGATE(idt[T_BRKPT], 0, GD_KT, h_brkptg, 3);
+        SETGATE(idt[T_OFLOW], 0, GD_KT, h_oflowg, 0);
+        SETGATE(idt[T_BOUND], 0, GD_KT, h_boundg, 0);
+        SETGATE(idt[T_ILLOP], 0, GD_KT, h_illopg, 0);
+        SETGATE(idt[T_DEVICE], 0, GD_KT, h_deviceg, 0);
 
-        SETGATE(idt[T_DBLFLT], 1, GD_KT, h_dblflt, 0);
-        SETGATE(idt[T_TSS], 1, GD_KT, h_tss, 0);
-        SETGATE(idt[T_SEGNP], 1, GD_KT, h_segnp, 0);
-        SETGATE(idt[T_STACK], 1, GD_KT, h_stack, 0);
-        SETGATE(idt[T_GPFLT], 1, GD_KT, h_gpflt, 0);
-        SETGATE(idt[T_PGFLT], 1, GD_KT, h_pgflt, 0);
+        SETGATE(idt[T_DBLFLT], 0, GD_KT, h_dblflt, 0);
+        SETGATE(idt[T_TSS], 0, GD_KT, h_tss, 0);
+        SETGATE(idt[T_SEGNP], 0, GD_KT, h_segnp, 0);
+        SETGATE(idt[T_STACK], 0, GD_KT, h_stack, 0);
+        SETGATE(idt[T_GPFLT], 0, GD_KT, h_gpflt, 0);
+        SETGATE(idt[T_PGFLT], 0, GD_KT, h_pgflt, 0);
 
-        SETGATE(idt[T_FPERR], 1, GD_KT, t_fperr, 0);
-        SETGATE(idt[T_ALIGN], 1, GD_KT, t_align, 0);
-        SETGATE(idt[T_MCHK], 1, GD_KT, t_mchk, 0);
-        SETGATE(idt[T_SIMDERR], 1, GD_KT, t_simderr, 0);
-        SETGATE(idt[T_SYSCALL], 1, GD_KT, t_syscall, 3);
-        SETGATE(idt[T_DEFAULT], 1, GD_KT, t_default, 0);
+        SETGATE(idt[T_FPERR], 0, GD_KT, t_fperr, 0);
+        SETGATE(idt[T_ALIGN], 0, GD_KT, t_align, 0);
+        SETGATE(idt[T_MCHK], 0, GD_KT, t_mchk, 0);
+        SETGATE(idt[T_SIMDERR], 0, GD_KT, t_simderr, 0);
+        SETGATE(idt[T_SYSCALL], 0, GD_KT, t_syscall, 3);
+        SETGATE(idt[T_DEFAULT], 0, GD_KT, t_default, 0);
 
 
         SETGATE(idt[IRQ_OFFSET + IRQ_TIMER], 0, GD_KT, irq_timer, 0);
@@ -136,7 +136,6 @@ idt_init(void)
 	// when we trap to the kernel.
 	ts.ts_esp0 = KSTACKTOP;
 	ts.ts_ss0 = GD_KD;
-	ts.ts_eflags = 0;
 
 	// Initialize the TSS field of the gdt.
 	gdt[GD_TSS >> 3] = SEG16(STS_T32A, (uint32_t) (&ts),

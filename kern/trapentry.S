@@ -78,7 +78,6 @@ TRAPHANDLER_NOEC(irq_ide	, IRQ_OFFSET + IRQ_IDE)
  */
 
 _alltraps:
-				cli
         pushl %ds
         pushl %es
         pushal
