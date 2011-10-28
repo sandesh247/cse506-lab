@@ -456,7 +456,7 @@ sys_ipc_recv(void *dstva)
 	//
 	DPRINTF4C("Environment %d looking for data on %x.\n", curenv->env_id, dstva);
 	
-	if (ROUNDDOWN(dstva, PGSIZE) != dstva && dstva < UTOP) {
+	if (ROUNDDOWN(dstva, PGSIZE) != dstva && (uint32_t)dstva < UTOP) {
 		return -E_INVAL;
 	}
 	curenv->env_ipc_recving = 1;
