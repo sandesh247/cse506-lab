@@ -128,12 +128,15 @@ sys_env_set_status(envid_t envid, int status)
 	struct Env *e = NULL;
 	int ret = envid2env(envid, &e, 1);
 	if (ret) {
+		DPRINTF4C("Could not set status of %d: %e.\n", envid, ret);
 		return ret;
 	}
 	if (status != ENV_RUNNABLE && status != ENV_NOT_RUNNABLE) {
+		DPRINTF4C("Could not set status of %d: invalid arg %d.\n", envid, status);
 		return -E_INVAL;
 	}
 	e->env_status = (unsigned)status;
+	DPRINTF4C("Set %d to %s.\n", e->env_id, status == ENV_RUNNABLE ? "ENV_RUNNABLE" : "ENV_NOT_RUNNABLE");
 	return 0;
 }
 
@@ -367,7 +370,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	// LAB 4: Your code here.
 	// panic("sys_ipc_try_send not implemented");
 	
-	DPRINTF4C("Trying to send message from %d to %d.\n", curenv->env_id, envid);
+	DPRINTF4C("Trying to send message %d, %x from %d to %d.\n", value, srcva, curenv->env_id, envid);
 	
 	struct Env *env;
 	int error;
@@ -433,7 +436,10 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	env->env_tf.tf_regs.reg_eax = 0;
 	DPRINTF4C("Value sent - setting %d to runnable.\n", envid);
 	DPRINTF4C("from, perm, value: %d, %d, %d.\n", env->env_ipc_from, env->env_ipc_perm, env->env_ipc_value);
-	sys_env_set_status(envid, ENV_RUNNABLE);
+	
+	// sys_env_set_status(envid, ENV_RUNNABLE);
+	// TODO: Setting this manually for now, since we know env to be good.
+	env->env_status = ENV_RUNNABLE;
 
 	return 0;
 }
