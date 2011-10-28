@@ -1,3 +1,4 @@
+// -*- c-basic-offset:8; indent-tabs-mode:t -*- 
 // User-level IPC library routines
 
 #include <inc/lib.h>
@@ -40,7 +41,13 @@ ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
 
 	if(pg) {
 		// the value is a page
-		sys_page_map(env->env_ipc_from, (void *) env->env_ipc_value, env->env_id, pg, env->env_ipc_perm);
+		error = sys_page_map(env->env_ipc_from, (void *) env->env_ipc_value, 
+				     env->env_id, pg, env->env_ipc_perm);
+		if (error) {
+			if(from_env_store) *from_env_store = 0;
+			if(perm_store) *perm_store = 0;
+			return error;
+		}
 	}
 
 	return env->env_ipc_value;
@@ -64,4 +71,7 @@ ipc_send(envid_t to_env, uint32_t val, void *pg, int perm)
 		sys_yield();
 		DPRINTF4C("Retrying ipc_send() ...\n");
 	}
+        if (error) {
+            panic("Aiee!! sys_ipc_try_send() returned: %e\n", error);
+        }
 }

@@ -221,7 +221,7 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 
 	ret = page_insert(e->env_pgdir, page, va, perm);
 	if (ret) {
-		// page_decref(page);
+		page_decref(page);
 	}
 	DPRINTF4("sys_page_alloc::e: %x, va: %x\n", e, va);
 
@@ -420,6 +420,8 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 		}
 
 		env->env_ipc_value = (uint32_t) srcva;
+		// FIXME: Map page in target's address space
+
 	}
 
 	// TODO: How do we check for no memory? We are sharing a page.
@@ -454,6 +456,9 @@ sys_ipc_recv(void *dstva)
 	//
 	DPRINTF4C("Environment %d looking for data on %x.\n", curenv->env_id, dstva);
 	
+	if (ROUNDDOWN(dstva, PGSIZE) != dstva && dstva < UTOP) {
+		return -E_INVAL;
+	}
 	curenv->env_ipc_recving = 1;
 	curenv->env_ipc_dstva = dstva;
 	sys_env_set_status(0, ENV_NOT_RUNNABLE);
