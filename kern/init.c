@@ -13,7 +13,6 @@
 #include <kern/sched.h>
 #include <kern/picirq.h>
 
-
 void
 i386_init(void)
 {
@@ -35,7 +34,10 @@ i386_init(void)
 	i386_vm_init();
 
 	// Lab 3 user environment initialization functions
+        cprintf("Before env_init()\n");
 	env_init();
+        cprintf("After env_init()\n");
+
 	idt_init();
 
 	// Lab 4 multitasking initialization functions
@@ -56,6 +58,19 @@ i386_init(void)
 	// ENV_CREATE(user_writemotd);
 	// ENV_CREATE(user_testfile);
 	// ENV_CREATE(user_icode);
+        // ENV_CREATE(user_yield);
+	// ENV_CREATE(user_yield);
+	// ENV_CREATE(user_yield);
+	// ENV_CREATE(user_yield);
+        // ENV_CREATE(user_dumbfork);
+        // ENV_CREATE(user_faultdie);
+        // ENV_CREATE(user_faultalloc);
+        // ENV_CREATE(user_faultallocbad);
+        // ENV_CREATE(user_faultregs);
+        // ENV_CREATE(user_faultnostack);
+        // ENV_CREATE(user_forktree);
+        // ENV_CREATE(user_spin);
+        ENV_CREATE(user_pingpong);
 #endif // TEST*
 
 	// Schedule and run the first user environment!

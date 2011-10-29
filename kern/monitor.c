@@ -1,3 +1,4 @@
+/* -*- Mode: C; c-basic-offset: 8; indent-tabs-mode: t -*- */
 // Simple command-line kernel monitor useful for
 // controlling the kernel and exploring the system interactively.
 
@@ -6,11 +7,13 @@
 #include <inc/memlayout.h>
 #include <inc/assert.h>
 #include <inc/x86.h>
+#include <inc/types.h>
 
 #include <kern/console.h>
 #include <kern/monitor.h>
 #include <kern/kdebug.h>
 #include <kern/trap.h>
+#include <kern/pmap.h>
 
 #define CMDBUF_SIZE	80	// enough for one VGA text line
 
@@ -25,6 +28,13 @@ struct Command {
 static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
+	{ "backtrace", "Display backtrace information", mon_backtrace },
+	{ "page_status", "Display the status of a physical page", mon_page_status },
+	{ "showmappings", "Display mappings for a virtual address range", mon_showmappings },
+	{ "chperm", "Change permissions of a virtual address range", mon_chperm },
+	{ "dumpmem", "Dump virtual or physical address ranges", mon_dumpmem },
+	{ "free_page", "Free the page at the physical address.", mon_free_page },
+	{ "alloc_page", "Allocate the page at the physical address.", mon_alloc_page },
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -60,7 +70,232 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
-	// Your code here.
+  // Your code here.
+  int *ebp = (int*)read_ebp(); // This gets us the value of esp when THIS function was entered
+  uintptr_t eip = read_eip();
+
+  cprintf("Stack backtrace:\n");
+
+  while (ebp) {
+    cprintf("ebp %08x  eip %08x  args %08x %08x %08x %08x %08x\n", 
+	    ebp, eip, ebp[2], ebp[3], ebp[4], ebp[5], ebp[6]);
+    struct Eipdebuginfo info;
+    debuginfo_eip(eip, &info);
+
+    int fn_namelen = info.eip_fn_namelen < 255 ? info.eip_fn_namelen : 255;
+    char fn_name[256];
+    int i = 0;
+
+    memmove(fn_name, info.eip_fn_name, fn_namelen);
+    fn_name[fn_namelen] = '\0';
+
+    cprintf("\t%c[1;31m%s%c[0m:%d: %c[1;33m%s%c[0m+%d\n", 
+	    0x1B, info.eip_file, 0x1B, info.eip_line, 0x1B, fn_name, 0x1B, eip-info.eip_fn_addr);
+
+    eip = ebp[1];
+    ebp = (int*)(*ebp);
+  }
+
+  return 0;
+}
+
+uint32_t parse_hex(char *str) {
+	assert(str);
+
+	uint32_t res = 0, pow16 = 1;
+
+	char *loc = str;
+	while(*loc) ++loc;
+
+	while(loc != str) {
+	  char c = *(--loc);
+
+		uint32_t d;
+
+		if(c >= '0' && c <= '9') {
+			d = c - '0';
+		} else if(c >= 'a' && c <= 'f') {
+			d = 10 + c - 'a';
+		} else if(c >= 'A' && c <= 'F') {
+			d = 10 + c - 'A';
+		} else {
+			return res;
+		}
+
+		res += (d * pow16);
+		pow16 = pow16 << 4;
+	}
+
+	return res;
+}
+
+int
+mon_page_status(int argc, char **argv, struct Trapframe *tf)
+{
+
+	if(argc != 2) {
+		cprintf("usage: page_status <physical addr>\n");
+		return -1;
+	}
+
+	struct Page* pp = pa2page(parse_hex(argv[1])), *ipp;
+	int found = 0;
+
+	LIST_FOREACH(ipp, &page_free_list, pp_link) {
+		if(ipp == pp) {
+			found = 1;
+			break;
+		}
+	}
+
+	if(pp) {
+		cprintf("Index %d, Ref count: %d, page:%x, VA: %x, PA: %x, %s.\n", page2ppn(pp), pp->pp_ref, pp, page2kva(pp), page2pa(pp), (found ? "not allocated" : "allocated"));
+	} else {
+		cprintf("Page not found.\n");
+	}
+
+	return 0;
+}
+
+int
+mon_free_page(int argc, char** argv, struct Trapframe *tf) {
+
+	if(argc != 2) {
+		cprintf("usage: free_page <physical addr>\n");
+		return -1;
+	}
+
+	struct Page* ipp = pa2page(parse_hex(argv[1]));
+
+	if(ipp) {
+		cprintf("Index %d, Ref count: %d.\n", page2ppn(ipp), ipp->pp_ref);
+		void *page_addr = page2kva(ipp);
+
+		// break off mappings
+		uintptr_t va;
+		for(va = KERNBASE; va < 0xFFFFFFFF - KERNBASE; va += PGSIZE) {
+			pte_t *pte = pgdir_walk(boot_pgdir, (void *) va, 0);
+
+			if(!pte || !PTE_ADDR(*pte)) continue;
+
+			if(KADDR(PTE_ADDR(*pte)) == page_addr) {
+				DPRINTF("Unmapping page from VA %x.\n", va);
+				page_remove(boot_pgdir, (void *) va);	
+			}
+		}
+	
+		assert(ipp->pp_ref == 0);
+
+		DPRINTF("Freeing page.\n");
+		page_free(ipp);
+	} else {
+		cprintf("Page not found.\n");
+	}
+	
+	return 0;
+}
+
+int
+mon_alloc_page(int argc, char** argv, struct Trapframe *tf) {
+
+	if(argc > 2) {
+		cprintf("usage: alloc_page [<physical addr>]\n");
+		return -1;
+	}
+
+	struct Page* ipp;
+	
+	if(argc == 2) {
+		ipp = pa2page(parse_hex(argv[1]));
+		LIST_REMOVE(ipp, pp_link);
+	} else {
+		page_alloc(&ipp);
+	}
+
+	if(ipp) {
+		DPRINTF("Allocated page %x at %x.\n", ipp, page2pa(ipp));
+	} else {
+		cprintf("Could not allocate page.\n");
+	}
+	
+	return 0;
+}
+
+int
+mon_showmappings(int argc, char **argv, struct Trapframe *tf) {
+	if(argc != 3) {
+		cprintf("usage: showmappings <virtual address start> <virtual address end>\n");
+		return -1;
+	}
+
+	uint32_t virt_start = ROUNDDOWN(parse_hex(argv[1]), PGSIZE);
+	uint32_t virt_end   = ROUNDDOWN(parse_hex(argv[2]), PGSIZE);
+
+	cprintf("VS, VE: %x, %x\n", virt_start, virt_end);
+
+
+	cprintf("Virtual Address, Physical Address\n");
+	cprintf("---------------------------------\n");
+	for (; virt_start <= virt_end; virt_start += PGSIZE) {
+	    uint32_t *pte = pgdir_walk(boot_pgdir, (const void*)virt_start, 0);
+	    cprintf(    "0x%08x     , "  "0x%08x\n", virt_start, pte ? PTE_ADDR(*pte) : 0);
+	}
+
+	return 0;
+}
+
+
+int
+mon_chperm(int argc, char **argv, struct Trapframe *tf) {
+	if(argc != 4) {
+		cprintf("usage: chperm <virtual address start> <virtual address end> <permission bits (hex)>\n");
+		return -1;
+	}
+
+	uint32_t virt_start = ROUNDDOWN(parse_hex(argv[1]), PGSIZE);
+	uint32_t virt_end   = ROUNDDOWN(parse_hex(argv[2]), PGSIZE);
+	uint32_t perms      = parse_hex(argv[3]);
+
+	uint32_t ctr = 0;
+	for (; virt_start <= virt_end; virt_start += PGSIZE) {
+	    uint32_t *pte = pgdir_walk(boot_pgdir, (const void*)virt_start, 0);
+	    if (pte) {
+		*pte |= perms;
+		++ctr;
+	    }
+	}
+	cprintf("Changed permissions for %d pages\n", ctr);
+
+	return 0;
+}
+
+int
+mon_dumpmem(int argc, char **argv, struct Trapframe *tf) {
+	if(argc != 3) {
+		cprintf("usage: showmappings <virtual address start> <virtual address end>\n");
+		return -1;
+	}
+
+	uint32_t virt_start = parse_hex(argv[1]);
+	uint32_t virt_end   = parse_hex(argv[2]);
+
+	int bs = 6;
+	for (; virt_start <= virt_end; virt_start += sizeof(uint32_t)*bs) {
+	    uint32_t va = virt_start;
+	    cprintf("0x%08x: ", va);
+	    while (va <= virt_start + sizeof(uint32_t)*bs) {
+		uint32_t pa = ROUNDDOWN(va, PGSIZE);
+		uint32_t *pte = pgdir_walk(boot_pgdir, (const void*)pa, 0);
+		uint32_t data = -1;
+		if (pte && PTE_ADDR(*pte)) {
+		    data = ((uint32_t*)KADDR(PTE_ADDR(*pte)))[(va - pa) / sizeof(uint32_t)];
+		}
+		cprintf("0x%08x  ", data);
+		va += sizeof(uint32_t);
+	    }
+	    cprintf("\n");
+	}
+
 	return 0;
 }
 

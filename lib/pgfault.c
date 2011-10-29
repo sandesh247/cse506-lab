@@ -1,3 +1,4 @@
+// -*- c-basic-offset: 8; indent-tabs-mode: t -*-
 // User-level page fault handler support.
 // Rather than register the C page fault handler directly with the
 // kernel as the page fault handler, we register the assembly language
@@ -29,7 +30,26 @@ set_pgfault_handler(void (*handler)(struct UTrapframe *utf))
 	if (_pgfault_handler == 0) {
 		// First time through!
 		// LAB 4: Your code here.
-		panic("set_pgfault_handler not implemented");
+		// panic("set_pgfault_handler not implemented");
+		int ret = sys_page_alloc(0, (void*)(UXSTACKTOP - PGSIZE), PTE_U|PTE_P|PTE_W);
+		if (ret) {
+			panic("Could NOT allocate a page for the trap-time stack: %e", ret);
+			return;
+		}
+		DPRINTF4("Allocated a stack frame at address: [%x, %x)\n", (UXSTACKTOP - PGSIZE), UXSTACKTOP);
+	}
+
+	DPRINTF4("Setting the _pgfault_upcall routine to: %x\n", _pgfault_upcall);
+	if (handler) {
+		DPRINTF4("set_pgfault_handler::setting upcall to _pgfault_upcall\n");
+		int ret = sys_env_set_pgfault_upcall(0, _pgfault_upcall);
+		if (ret) {
+			panic("Could not set page fault upcall handler: %e\n", ret);
+			return;
+		}
+	}
+	else {
+		sys_env_set_pgfault_upcall(0, 0);
 	}
 
 	// Save handler pointer for assembly to call.
