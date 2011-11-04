@@ -223,12 +223,12 @@ clone(int shared_heap) {
 		return new_env;
 	}
 	else {
-		cprintf("[1] In Child (%d), _pgfault_handler: %x\n", sys_getenvid(), _pgfault_handler);
+		DPRINTF4("[1] In Child (%d), _pgfault_handler: %x\n", sys_getenvid(), _pgfault_handler);
 
 		// Child - do nothing here
 		env = &envs[ENVX(sys_getenvid())];
 
-		cprintf("[2] In Child (%d)\n", sys_getenvid());
+		DPRINTF4("[2] In Child (%d)\n", sys_getenvid());
 
 		return 0;
 	}

@@ -20,6 +20,20 @@ sched_yield(void)
 	// unless NOTHING else is runnable.
 
 	// LAB 4: Your code here.
+	
+	if(curenv) {
+		DPRINTF4C("Yielding from %d.\n", curenv->env_id);
+	}
+
+	int j;
+	DPRINTF4C("Runnable environments:\n");
+	for(j = 0; j < NENV; ++j) {
+		if(envs[j].env_status == ENV_RUNNABLE) {
+			DPRINTF4C("%d\n", envs[j].env_id);
+		}
+	}
+
+
 	int i = (curenv ? curenv - envs + 1 : 1);
 	for(; i < NENV; ++i) {
 		if(envs[i].env_status == ENV_RUNNABLE) {
