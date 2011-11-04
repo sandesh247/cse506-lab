@@ -43,11 +43,22 @@ bc_pgfault(struct UTrapframe *utf)
 	// contents of the block from the disk into that page.
 	//
 	// LAB 5: Your code here
-        if ((r = sys_page_alloc(0, ROUNDDOWN(addr), PTE_U|PTE_P|PTE_W)) != 0) {
+        if ((r = sys_page_alloc(0, ROUNDDOWN(addr, PGSIZE), PTE_U|PTE_P|PTE_W)) != 0) {
             panic("bc_pgfault::Error allocating page: %e\n", r);
         }
 
+        uint32_t secno = (uint32_t)ROUNDDOWN(addr, PGSIZE);
+        char *dst = (char*)ROUNDDOWN(addr, PGSIZE);
+        int i;
+
         // Read in the page (todo)
+        for (i = 0; i < BLKSECTS; ++i) {
+            if ((r = ide_read(secno, dst, 256)) != 0) {
+                panic("bc_pgfault::Error reading sector from disk: %e\n", r);
+            }
+            secno += SECTSIZE;
+            dst += SECTSIZE;
+        }
 
 	// Sanity check the block number. (exercise for the reader:
 	// why do we do this *after* reading the block in?)
