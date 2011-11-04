@@ -1,3 +1,4 @@
+// -*- c-basic-offset:8; indent-tabs-mode:t -*-
 /* See COPYRIGHT for copyright information. */
 
 #include <inc/stdio.h>
@@ -68,9 +69,10 @@ i386_init(void)
         // ENV_CREATE(user_faultallocbad);
         // ENV_CREATE(user_faultregs);
         // ENV_CREATE(user_faultnostack);
-        // ENV_CREATE(user_forktree);
+	// ENV_CREATE(user_forktree);
         // ENV_CREATE(user_spin);
-        ENV_CREATE(user_pingpong);
+        // ENV_CREATE(user_pingpong);
+	// ENV_CREATE(user_primes);
 #endif // TEST*
 
 	// Schedule and run the first user environment!

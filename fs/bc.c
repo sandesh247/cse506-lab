@@ -43,6 +43,11 @@ bc_pgfault(struct UTrapframe *utf)
 	// contents of the block from the disk into that page.
 	//
 	// LAB 5: Your code here
+        if ((r = sys_page_alloc(0, ROUNDDOWN(addr), PTE_U|PTE_P|PTE_W)) != 0) {
+            panic("bc_pgfault::Error allocating page: %e\n", r);
+        }
+
+        // Read in the page (todo)
 
 	// Sanity check the block number. (exercise for the reader:
 	// why do we do this *after* reading the block in?)
