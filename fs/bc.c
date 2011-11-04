@@ -43,7 +43,7 @@ bc_pgfault(struct UTrapframe *utf)
 	// contents of the block from the disk into that page.
 	//
 	// LAB 5: Your code here
-        if ((r = sys_page_alloc(0, ROUNDDOWN(addr, PGSIZE), PTE_U|PTE_P|PTE_W)) != 0) {
+        if ((r = sys_page_alloc(0, ROUNDDOWN(addr, PGSIZE), PTE_USER)) != 0) {
             panic("bc_pgfault::Error allocating page: %e\n", r);
         }
 
@@ -86,7 +86,30 @@ flush_block(void *addr)
 		panic("flush_block of bad va %08x", addr);
 
 	// LAB 5: Your code here.
-	panic("flush_block not implemented");
+	
+	if(!va_is_mapped(addr) || !va_is_dirty(addr)) {
+		return;
+	}
+
+	uint32_t secno = (uint32_t)ROUNDDOWN(addr, PGSIZE);
+	char *dst = (char*)ROUNDDOWN(addr, PGSIZE);
+	int i, r;
+
+	// Read in the page
+	for (i = 0; i < BLKSECTS; ++i) {
+		if ((r = ide_write(secno, dst, 256)) != 0) {
+			panic("bc_pgfault::Error write sector from disk: %e\n", r);
+		}
+		secno += SECTSIZE;
+		dst += SECTSIZE;
+	}
+
+	if((r = 
+				sys_page_map(0, ROUNDDOWN(addr, PGSIZE), 0, ROUNDDOWN(addr, PGSIZE), PTE_USER)) != 0) {
+		panic("Could not update status of page in va: %e.", r);
+	}
+
+	// panic("flush_block not implemented");
 }
 
 // Test that the block cache works, by smashing the superblock and
