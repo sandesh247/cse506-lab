@@ -1,3 +1,4 @@
+// -*- c-basic-offset: 8; indent-tabs-mode: t -*-
 #include <inc/string.h>
 
 #include "fs.h"
@@ -61,7 +62,19 @@ alloc_block(void)
 	// super->s_nblocks blocks in the disk altogether.
 
 	// LAB 5: Your code here.
-	panic("alloc_block not implemented");
+	// panic("alloc_block not implemented");
+	uint32_t all_set = ~(uint32_t)0;
+	for (int i = 0; i < super->s_nblocks / 32; ++i) {
+		if (bitmap[i] != 0) {
+			int blockno = i*32;
+			while (blockno < (i+1) * 32 && !block_is_free(blockno)) {
+				++blockno;
+			}
+			// blockno _is_ free. We allocate it now
+			bitmap[blockno/32] &= ~((uint32_t)1)<<(blockno%32);
+			return blockno;
+		}
+	}
 	return -E_NO_DISK;
 }
 
