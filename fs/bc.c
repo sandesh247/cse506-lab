@@ -1,4 +1,4 @@
-
+// -*- c-basic-offset: 8; indent-tabs-mode: t -*-
 #include "fs.h"
 
 // Return the virtual address of this disk block.
