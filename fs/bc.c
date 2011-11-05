@@ -44,15 +44,14 @@ bc_pgfault(struct UTrapframe *utf)
 	// contents of the block from the disk into that page.
 	//
 	// LAB 5: Your code here
-        if ((r = sys_page_alloc(0, ROUNDDOWN(addr, PGSIZE), PTE_USER)) != 0) {
-            panic("bc_pgfault::Error allocating page: %e\n", r);
-        }
+	if ((r = sys_page_alloc(0, ROUNDDOWN(addr, PGSIZE), PTE_USER)) != 0) {
+		panic("bc_pgfault::Error allocating page: %e\n", r);
+	}
 
-        uint32_t secno = (uint32_t)ROUNDDOWN(addr - DISKMAP, PGSIZE) / SECTSIZE;
-        char *dst = (char*)ROUNDDOWN(addr, PGSIZE);
-        int i;
+	uint32_t secno = (uint32_t)ROUNDDOWN(addr - DISKMAP, PGSIZE) / SECTSIZE;
+	char *dst = (char*)ROUNDDOWN(addr, PGSIZE);
 
-				ide_read(secno, dst, BLKSECTS);
+	ide_read(secno, dst, BLKSECTS);
 
 	// Sanity check the block number. (exercise for the reader:
 	// why do we do this *after* reading the block in?)

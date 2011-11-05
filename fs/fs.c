@@ -151,18 +151,21 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 	assert(f);
 	assert(ppdiskbno);
 	if(filebno >= NDIRECT + NINDIRECT) {
+		DPRINTF5("Invalid filebno %d.\n", filebno);
 		return -E_INVAL;
 	}
 
 	if(filebno < NDIRECT) {
 		// disk block found
 		*ppdiskbno = f->f_direct + filebno;
+		DPRINTF5("Found filbeno %d\n", filebno);
 		return 0;
 	} else {
 		// we need to look up the indirect block
 		if(f->f_indirect) {
 			uint32_t *indirect = diskaddr(f->f_indirect);
 			*ppdiskbno = indirect + filebno;
+			DPRINTF5("Found filebno in indirect block.\n");
 			return 0;
 		} else {
 			// indirect block isn't allocated
@@ -171,11 +174,14 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 				return -E_NOT_FOUND;
 			} else {
 				// allocate indirect block, and be on your way
+				DPRINTF5("Allocating indeirect block for filebno %d ...\n", filebno);
 				int block_num = alloc_block();
 				if(block_num < 0) {
+					DPRINTF5("Out of disk space for filebno %d!\n", filebno);
 					return -E_NO_DISK;
 				}
 
+				DPRINTF5("Got block number %d for filebno %d.\n", block_num, filebno);
 				uint32_t *indirect = diskaddr(block_num);
 				f->f_indirect = block_num;
 				memset(indirect, 0, BLKSIZE);
@@ -211,15 +217,19 @@ file_get_block(struct File *f, uint32_t filebno, char **blk)
 		return -E_INVAL;
 	}
 
-	int blkno = alloc_block();
-	if (blkno < 0) {
-		DPRINTF5("file_block_walk::Error calling alloc_block: %e\n", r);
-		return -E_NO_DISK;
+	if(!*pdiskbno) {
+		int blkno = alloc_block();
+		if (blkno < 0) {
+			DPRINTF5("file_block_walk::Error calling alloc_block: %e\n", r);
+			return -E_NO_DISK;
+		}
+
+		*pdiskbno = blkno;
 	}
 
-	*pdiskbno = blkno;
 	assert(blk);
-	*blk = (char*)diskaddr(blkno);
+	*blk = diskaddr(*pdiskbno);
+	
 	return 0;
 }
 
@@ -230,6 +240,7 @@ file_get_block(struct File *f, uint32_t filebno, char **blk)
 static int
 dir_lookup(struct File *dir, const char *name, struct File **file)
 {
+	DPRINTF5("Looking for file %s in directory %s.\n", name, dir->f_name);
 	int r;
 	uint32_t i, j, nblock;
 	char *blk;
@@ -241,15 +252,21 @@ dir_lookup(struct File *dir, const char *name, struct File **file)
 	assert((dir->f_size % BLKSIZE) == 0);
 	nblock = dir->f_size / BLKSIZE;
 	for (i = 0; i < nblock; i++) {
-		if ((r = file_get_block(dir, i, &blk)) < 0)
+		if ((r = file_get_block(dir, i, &blk)) < 0) {
+			DPRINTF5("file_get_block failed: %e.\n", r);
 			return r;
+		}
 		f = (struct File*) blk;
-		for (j = 0; j < BLKFILES; j++)
+		for (j = 0; j < BLKFILES; j++) {
+			DPRINTF5("Found file %s in %s ...\n", f[j].f_name, dir->f_name);
 			if (strcmp(f[j].f_name, name) == 0) {
 				*file = &f[j];
 				return 0;
 			}
+		}
 	}
+	
+	DPRINTF5("Could not find %s in %s.\n",  name, dir->f_name);
 	return -E_NOT_FOUND;
 }
 

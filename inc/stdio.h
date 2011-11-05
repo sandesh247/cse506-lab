@@ -8,11 +8,11 @@
 #endif /* !NULL */
 
 
-#define DPRINTF2  cprintf
-#define DPRINTF   cprintf
-#define DPRINTF4  cprintf
+#define DPRINTF2  // cprintf
+#define DPRINTF   // cprintf
+#define DPRINTF4  // cprintf
 #define DPRINTF4C(M, ...) // cprintf("DEBUG 4C %s:%d:%s:" M, __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__)
-#define DPRINTF5(M, ...) cprintf("DEBUG5 %s:%d:%s:" M, __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__)
+#define DPRINTF5(M, ...) cprintf("DEBUG 5 %s:%d:%s:" M, __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__)
 
 // lib/stdio.c
 void	cputchar(int c);
