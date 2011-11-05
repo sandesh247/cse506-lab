@@ -145,7 +145,7 @@ fs_init(void)
 static int
 file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool alloc)
 {
-	DPRINTF5("(%x, %u, %x, %d)\n", f, filebno, ppdiskbno, alloc);
+	DPRINTF5("file_block_walk(%x, %u, %x, %d)\n", f, filebno, ppdiskbno, alloc);
 
 	// LAB 5: Your code here.
 	assert(f);

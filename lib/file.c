@@ -3,7 +3,7 @@
 #include <inc/string.h>
 #include <inc/lib.h>
 
-#define debug 0
+#define debug 1
 
 extern union Fsipc fsipcbuf;	// page-aligned, declared in entry.S
 
@@ -98,17 +98,28 @@ devfile_read(struct Fd *fd, void *buf, size_t n)
 	// system server.
 	// LAB 5: Your code here
 	// panic("devfile_read not implemented");
-	DPRINTF5("(%x, %x, %d)\n", fd, buf, n);
+	DPRINTF5("devfile_read(%x, %x, %d)\n", fd, buf, n);
 
 	int r;
-	fsipcbuf.read.req_fileid = fd2num(fd);
+	fsipcbuf.read.req_fileid = fd->fd_file.id;
 	fsipcbuf.read.req_n = n;
 
-	if ((r = fsipc(FSREQ_READ, &fsipcbuf)) != 0) {
+	DPRINTF5("devfile_read::fileid: %d, req_n: %d\n", 
+		 fsipcbuf.read.req_fileid, fsipcbuf.read.req_n);
+
+	r = fsipc(FSREQ_READ, 0);
+	DPRINTF5("devfile_read got %d(%e) from fsipc\n", r, r);
+
+	if (r < 0) {
 		return r;
 	}
 	assert(r >= 0 && r < PGSIZE);
-	memmove(buf, &fsipcbuf, r);
+	memmove(buf, &(fsipcbuf.readRet.ret_buf), r);
+	if (r < PGSIZE) {
+		((char*)buf)[r] = '\0';
+	}
+	DPRINTF5("Got (buf): %s\n", buf);
+
 	return r;
 }
 
@@ -126,7 +137,7 @@ devfile_write(struct Fd *fd, const void *buf, size_t n)
 	// bytes than requested.
 	// LAB 5: Your code here
 	assert(buf);
-	fsipcbuf.write.req_fileid = fd2num(fd);
+	fsipcbuf.write.req_fileid = fd->fd_file.id;
 
 	ssize_t written = 0;
 	ssize_t write_limit = sizeof(fsipcbuf.write.req_buf);

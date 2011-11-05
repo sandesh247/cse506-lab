@@ -10,7 +10,7 @@
 #include "fs.h"
 
 
-#define debug 0
+#define debug 1
 
 // The file system server maintains three structures
 // for each open file.
@@ -201,7 +201,7 @@ serve_set_size(envid_t envid, struct Fsreq_set_size *req)
 int
 serve_read(envid_t envid, union Fsipc *ipc)
 {
-	DPRINTF5("(%d, %x)\n", envid, ipc);
+	DPRINTF5("serve_read(%d, %x)\n", envid, ipc);
 	struct Fsreq_read *preq = &ipc->read;
 	struct Fsret_read *ret = &ipc->readRet;
 
@@ -226,7 +226,9 @@ serve_read(envid_t envid, union Fsipc *ipc)
 	struct OpenFile *po = NULL;
 	struct File *pf = NULL;
 	struct Fd *pfd = NULL;
-	if ((r = openfile_lookup(0, req.req_fileid, &po)) != 0) {
+	r = openfile_lookup(0, req.req_fileid, &po);
+	DPRINTF5("openfile_lookup returned %d (%e)\n", r, r);
+	if (r != 0) {
 		return r;
 	}
 
@@ -374,12 +376,15 @@ serve(void)
 		pg = NULL;
 		if (req == FSREQ_OPEN) {
 			r = serve_open(whom, (struct Fsreq_open*)fsreq, &pg, &perm);
+			DPRINTF5("Error [%d] in serve_open: %e\n", r, r);
 		} else if (req < NHANDLERS && handlers[req]) {
 			r = handlers[req](whom, fsreq);
+			DPRINTF5("Error [%d] handling function: %e\n", r, r);
 		} else {
 			cprintf("Invalid request code %d from %08x\n", whom, req);
 			r = -E_INVAL;
 		}
+		DPRINTF5("About to call ipc_send(%d, %u, %x)\n", whom, r, pg);
 		ipc_send(whom, r, pg, perm);
 		sys_page_unmap(0, fsreq);
 	}

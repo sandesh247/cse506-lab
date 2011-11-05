@@ -400,16 +400,12 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	env->env_ipc_value = value;
 	
 	if ((uint32_t) env->env_ipc_dstva < UTOP && 
-	    (uint32_t) env->env_ipc_dstva >= 0) {
+	    (uint32_t) env->env_ipc_dstva >= 0 && 
+	    (uint32_t) srcva < UTOP) {
 		DPRINTF4C("Environment %d looking for mapping in %x.\n", envid, env->env_ipc_dstva);
 
-		if (srcva && (uint32_t) srcva > UTOP) {
-			DPRINTF4C("Bad va %x for environment %d.\n", srcva, curenv->env_id);
-			return -E_INVAL;
-		}
-
 		if (ROUNDDOWN(srcva, PGSIZE) != srcva) {
-			DPRINTF4C("Bad va %x for environment %d.\n", srcva, curenv->env_id);
+			DPRINTF4C("[2] Bad va %x for environment %d.\n", srcva, curenv->env_id);
 			return -E_INVAL;
 		}
 
@@ -427,12 +423,12 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 		
 		spp = page_lookup(curenv->env_pgdir, srcva, &spte);
 		if (spp == 0 || (*spte & PTE_P) == 0) {
-			DPRINTF4C("Bad va %x for environment %d: Not mapped.\n", srcva, curenv->env_id);
+			DPRINTF4C("[3] Bad va %x for environment %d: Not mapped. spp: %x, spte: %d\n", srcva, curenv->env_id, spp, *spte);
 			return -E_INVAL;
 		}
 
 		if (perm & PTE_W && !(*spte & PTE_W)) {
-			DPRINTF4C("Bad va %x for environment %d: permission mismatch.\n", srcva, curenv->env_id);
+			DPRINTF4C("[4] Bad va %x for environment %d: permission mismatch.\n", srcva, curenv->env_id);
 			return -E_INVAL;
 		}
 

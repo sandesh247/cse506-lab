@@ -68,12 +68,13 @@ ipc_send(envid_t to_env, uint32_t val, void *pg, int perm)
 {
 	// LAB 4: Your code here.
 	//
+	DPRINTF5("ipc_send(%d, %u, %x)\n", to_env, val, pg);
 	int error;
-	while((error = sys_ipc_try_send(to_env, val, pg, perm)) == -E_IPC_NOT_RECV) {
+	while((error = sys_ipc_try_send(to_env, val, !pg ? (void*)UTOP : pg, perm)) == -E_IPC_NOT_RECV) {
 		sys_yield();
 		DPRINTF4C("Retrying ipc_send() ...\n");
 	}
         if (error) {
-            panic("Aiee!! sys_ipc_try_send() returned: %e\n", error);
+		panic("Aiee!! sys_ipc_try_send() returned: %e\n", error);
         }
 }
