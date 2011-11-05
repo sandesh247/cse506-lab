@@ -39,6 +39,7 @@ ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
 	if(from_env_store) *from_env_store = env->env_ipc_from;
 	if(perm_store) *perm_store = env->env_ipc_perm;
 
+	/*
 	if(pg) {
 		// the value is a page
 		error = sys_page_map(env->env_ipc_from, (void *) env->env_ipc_value, 
@@ -49,6 +50,7 @@ ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
 			return error;
 		}
 	}
+	*/
 
 	return env->env_ipc_value;
 }

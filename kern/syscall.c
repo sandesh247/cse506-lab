@@ -387,31 +387,33 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	struct Env *env;
 	int error;
 
-	if((error = envid2env(envid, &env, 0)) < 0) {
+	if ((error = envid2env(envid, &env, 0)) < 0) {
 		DPRINTF4C("Bad environment %d.\n", envid);
 		return -E_BAD_ENV;
 	}
 
-	if(!env->env_ipc_recving) {
+	if (!env->env_ipc_recving) {
 		DPRINTF4C("Bad environment %d - not receiving.\n", envid);
 		return -E_IPC_NOT_RECV;
 	}
 
 	env->env_ipc_value = value;
 	
-	if((uint32_t) env->env_ipc_dstva < UTOP && (uint32_t) env->env_ipc_dstva >= 0) {
+	if ((uint32_t) env->env_ipc_dstva < UTOP && 
+	    (uint32_t) env->env_ipc_dstva >= 0) {
 		DPRINTF4C("Environment %d looking for mapping in %x.\n", envid, env->env_ipc_dstva);
-		
-		if(srcva && (uint32_t) srcva > UTOP) {
+
+		if (srcva && (uint32_t) srcva > UTOP) {
 			DPRINTF4C("Bad va %x for environment %d.\n", srcva, curenv->env_id);
 			return -E_INVAL;
 		}
 
-		if(ROUNDDOWN(srcva, PGSIZE) != srcva) {
+		if (ROUNDDOWN(srcva, PGSIZE) != srcva) {
 			DPRINTF4C("Bad va %x for environment %d.\n", srcva, curenv->env_id);
 			return -E_INVAL;
 		}
 
+		// TODO: Why is this commented out??
 		// if ((perm & (PTE_P | PTE_U)) != (PTE_P|PTE_U)) {
 		//	return -E_INVAL;
 		//}
@@ -429,14 +431,18 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 			return -E_INVAL;
 		}
 
-		if(perm & PTE_W && !(*spte & PTE_W)) {
+		if (perm & PTE_W && !(*spte & PTE_W)) {
 			DPRINTF4C("Bad va %x for environment %d: permission mismatch.\n", srcva, curenv->env_id);
 			return -E_INVAL;
 		}
 
-		env->env_ipc_value = (uint32_t) srcva;
+		// Don't do THIS!!
+		// env->env_ipc_value = (uint32_t) srcva;
 		// FIXME: Map page in target's address space
 
+		if ((error = page_insert(env->env_pgdir, spp, env->env_ipc_dstva, perm)) != 0) {
+			return -E_INVAL;
+		}
 	}
 
 	// TODO: How do we check for no memory? We are sharing a page.
