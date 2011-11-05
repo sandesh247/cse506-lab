@@ -145,6 +145,8 @@ fs_init(void)
 static int
 file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool alloc)
 {
+	DPRINTF5("(%x, %u, %x, %d)\n", f, filebno, ppdiskbno, alloc);
+
 	// LAB 5: Your code here.
 	assert(f);
 	assert(ppdiskbno);
@@ -197,6 +199,8 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 int
 file_get_block(struct File *f, uint32_t filebno, char **blk)
 {
+	DPRINTF5("(%x, %u, %x)\n", f, filebno, blk);
+
 	// LAB 5: Your code here.
 	// panic("file_get_block not implemented");
 	uint32_t *pdiskbno = NULL;
@@ -214,6 +218,8 @@ file_get_block(struct File *f, uint32_t filebno, char **blk)
 	}
 
 	*pdiskbno = blkno;
+	assert(blk);
+	*blk = (char*)diskaddr(blkno);
 	return 0;
 }
 
