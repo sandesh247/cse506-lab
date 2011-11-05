@@ -104,21 +104,20 @@ devfile_read(struct Fd *fd, void *buf, size_t n)
 	fsipcbuf.read.req_fileid = fd->fd_file.id;
 	fsipcbuf.read.req_n = n;
 
-	DPRINTF5("devfile_read::fileid: %d, req_n: %d\n", 
-		 fsipcbuf.read.req_fileid, fsipcbuf.read.req_n);
+	// DPRINTF5("devfile_read::fileid: %d, req_n: %d\n", fsipcbuf.read.req_fileid, fsipcbuf.read.req_n);
 
 	r = fsipc(FSREQ_READ, 0);
-	DPRINTF5("devfile_read got %d(%e) from fsipc\n", r, r);
+	// DPRINTF5("devfile_read got %d(%e) from fsipc\n", r, r);
 
 	if (r < 0) {
 		return r;
 	}
 	assert(r >= 0 && r < PGSIZE);
 	memmove(buf, &(fsipcbuf.readRet.ret_buf), r);
-	if (r < PGSIZE) {
-		((char*)buf)[r] = '\0';
-	}
-	DPRINTF5("Got (buf): %s\n", buf);
+	// if (r < PGSIZE) {
+	// ((char*)buf)[r] = '\0';
+	// }
+	// DPRINTF5("Got (buf): %s\n", buf);
 
 	return r;
 }
