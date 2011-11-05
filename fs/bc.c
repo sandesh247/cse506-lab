@@ -31,6 +31,7 @@ static void
 bc_pgfault(struct UTrapframe *utf)
 {
 	void *addr = (void *) utf->utf_fault_va;
+	DPRINTF5("Faulted at va %x.\n", addr);
 	uint32_t blockno = ((uint32_t)addr - DISKMAP) / BLKSIZE;
 	int r;
 
@@ -43,22 +44,15 @@ bc_pgfault(struct UTrapframe *utf)
 	// contents of the block from the disk into that page.
 	//
 	// LAB 5: Your code here
-        if ((r = sys_page_alloc(0, ROUNDDOWN(addr, PGSIZE), PTE_U|PTE_P|PTE_W)) != 0) {
+        if ((r = sys_page_alloc(0, ROUNDDOWN(addr, PGSIZE), PTE_USER)) != 0) {
             panic("bc_pgfault::Error allocating page: %e\n", r);
         }
 
-        uint32_t secno = (uint32_t)ROUNDDOWN(addr, PGSIZE) / BLKSECTS;
+        uint32_t secno = (uint32_t)ROUNDDOWN(addr - DISKMAP, PGSIZE) / SECTSIZE;
         char *dst = (char*)ROUNDDOWN(addr, PGSIZE);
         int i;
 
-        // Read in the page (todo)
-        for (i = 0; i < BLKSECTS; ++i) {
-            if ((r = ide_read(secno, dst, 256)) != 0) {
-                panic("bc_pgfault::Error reading sector from disk: %e\n", r);
-            }
-            secno += 1;
-            dst += SECTSIZE;
-        }
+				ide_read(secno, dst, BLKSECTS);
 
 	// Sanity check the block number. (exercise for the reader:
 	// why do we do this *after* reading the block in?)
@@ -68,6 +62,8 @@ bc_pgfault(struct UTrapframe *utf)
 	// Check that the block we read was allocated.
 	if (bitmap && block_is_free(blockno))
 		panic("reading free block %08x\n", blockno);
+		
+	DPRINTF5("Done reading va %x.\n", addr);
 }
 
 // Flush the contents of the block containing VA out to disk if
@@ -80,7 +76,7 @@ bc_pgfault(struct UTrapframe *utf)
 void
 flush_block(void *addr)
 {
-	uint32_t blockno = ((uint32_t)addr - DISKMAP) / BLKSIZE;
+	uint32_t blockno = ((uint32_t)addr - DISKMAP) / SECTSIZE;
 
 	if (addr < (void*)DISKMAP || addr >= (void*)(DISKMAP + DISKSIZE))
 		panic("flush_block of bad va %08x", addr);
@@ -89,18 +85,14 @@ flush_block(void *addr)
 		return;
 	}
 
-	uint32_t secno = (uint32_t)ROUNDDOWN(addr, PGSIZE) / BLKSECTS;
+	uint32_t secno = (uint32_t)ROUNDDOWN(addr - DISKMAP, PGSIZE) / SECTSIZE;
 	char *dst = (char*)ROUNDDOWN(addr, PGSIZE);
 	int i, r;
 
 	// Read in the page
-	for (i = 0; i < BLKSECTS; ++i) {
-		if ((r = ide_write(secno, dst, 256)) != 0) {
+		if ((r = ide_write(secno, dst, BLKSECTS)) != 0) {
 			panic("bc_pgfault::Error write sector from disk: %e\n", r);
 		}
-		secno += 1;
-		dst += SECTSIZE;
-	}
 
 	if((r = sys_page_map(0, ROUNDDOWN(addr, PGSIZE), 0, ROUNDDOWN(addr, PGSIZE), PTE_USER)) != 0) {
 		panic("Could not update status of page in va: %e.", r);
