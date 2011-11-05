@@ -198,7 +198,23 @@ int
 file_get_block(struct File *f, uint32_t filebno, char **blk)
 {
 	// LAB 5: Your code here.
-	panic("file_get_block not implemented");
+	// panic("file_get_block not implemented");
+	uint32_t *pdiskbno = NULL;
+	int r = file_block_walk(f, filebno, &pdiskbno, 1);
+
+	if (r) {
+		DPRINTF5("file_get_block::Error calling file_block_walk: %e\n", r);
+		return -E_INVAL;
+	}
+
+	int blkno = alloc_block();
+	if (blkno < 0) {
+		DPRINTF5("file_block_walk::Error calling alloc_block: %e\n", r);
+		return -E_NO_DISK;
+	}
+
+	*pdiskbno = blkno;
+	return 0;
 }
 
 // Try to find a file named "name" in dir.  If so, set *file to it.
