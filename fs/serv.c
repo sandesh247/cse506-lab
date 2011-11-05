@@ -201,6 +201,7 @@ serve_set_size(envid_t envid, struct Fsreq_set_size *req)
 int
 serve_read(envid_t envid, union Fsipc *ipc)
 {
+	DPRINTF5("(%d, %x)\n", envid, ipc);
 	struct Fsreq_read *preq = &ipc->read;
 	struct Fsret_read *ret = &ipc->readRet;
 

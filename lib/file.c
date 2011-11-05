@@ -1,3 +1,4 @@
+// -*- c-basic-offset:8; indent-tabs-mode:t -*-
 #include <inc/fs.h>
 #include <inc/string.h>
 #include <inc/lib.h>
@@ -94,7 +95,19 @@ devfile_read(struct Fd *fd, void *buf, size_t n)
 	// bytes read will be written back to fsipcbuf by the file
 	// system server.
 	// LAB 5: Your code here
-	panic("devfile_read not implemented");
+	// panic("devfile_read not implemented");
+	DPRINTF5("(%x, %x, %d)\n", fd, buf, n);
+
+	int r;
+	fsipcbuf.read.req_fileid = fd2num(fd);
+	fsipcbuf.read.req_n = n;
+
+	if ((r = fsipc(FSREQ_READ, &fsipcbuf)) != 0) {
+		return r;
+	}
+	assert(r >= 0 && r < PGSIZE);
+	memmove(buf, &fsipcbuf, r);
+	return r;
 }
 
 // Write at most 'n' bytes from 'buf' to 'fd' at the current seek position.
