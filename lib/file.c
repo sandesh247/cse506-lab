@@ -19,6 +19,8 @@ fsipc(unsigned type, void *dstva)
 	if (debug)
 		cprintf("[%08x] fsipc %d %08x\n", env->env_id, type, *(uint32_t *)&fsipcbuf);
 
+	DPRINTF5("[%08x] fsipc(%d, %08x)\n", env->env_id, type, *(uint32_t *)&fsipcbuf);
+
 	ipc_send(envs[1].env_id, type, &fsipcbuf, PTE_P | PTE_W | PTE_U);
 	return ipc_recv(NULL, dstva, NULL);
 }

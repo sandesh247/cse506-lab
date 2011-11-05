@@ -382,8 +382,8 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	// LAB 4: Your code here.
 	// panic("sys_ipc_try_send not implemented");
 	
-	DPRINTF4C("Trying to send message %d, %x from %d to %d.\n", value, srcva, curenv->env_id, envid);
-	
+	DPRINTF4C("Trying to send message %u, %x from %d to %d.\n", value, srcva, curenv->env_id, envid);
+
 	struct Env *env;
 	int error;
 
@@ -441,6 +441,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 		// FIXME: Map page in target's address space
 
 		if ((error = page_insert(env->env_pgdir, spp, env->env_ipc_dstva, perm)) != 0) {
+			DPRINTF5("Could not insert page at VA %x in environment %x: %e\n", env->env_ipc_dstva, env->env_id, error);
 			return -E_INVAL;
 		}
 	}
