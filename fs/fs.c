@@ -145,7 +145,44 @@ static int
 file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool alloc)
 {
 	// LAB 5: Your code here.
-	panic("file_block_walk not implemented");
+	assert(f);
+	assert(ppdiskbno);
+	if(filebno >= NDIRECT + NINDIRECT) {
+		return -E_INVAL;
+	}
+
+	if(filebno < NDIRECT) {
+		// disk block found
+		*ppdiskbno = f->f_direct + filebno;
+		return 0;
+	} else {
+		// we need to look up the indirect block
+		if(f->f_indirect) {
+			uint32_t *indirect = diskaddr(f->f_indirect);
+			*ppdiskbno = indirect + filebno;
+			return 0;
+		} else {
+			// indirect block isn't allocated
+			if(!alloc) {
+				// what!? we aren't allowed to allocate one!
+				return -E_NOT_FOUND;
+			} else {
+				// allocate indirect block, and be on your way
+				int block_num = alloc_block();
+				if(block_num < 0) {
+					return -E_NO_DISK;
+				}
+
+				uint32_t *indirect = diskaddr(block_num);
+				f->f_indirect = block_num;
+				memset(indirect, 0, BLKSIZE);
+				*ppdiskbno = indirect + filebno;
+				return 0;
+			}
+		}
+	}
+
+	// panic("file_block_walk not implemented");
 }
 
 // Set *blk to point at the filebno'th block in file 'f'.
