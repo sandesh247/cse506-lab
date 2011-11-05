@@ -480,6 +480,7 @@ sys_ipc_recv(void *dstva)
 	curenv->env_ipc_recving = 1;
 	curenv->env_ipc_dstva = dstva;
 	sys_env_set_status(0, ENV_NOT_RUNNABLE);
+	curenv->env_tf.tf_regs.reg_eax = 0;
 	DPRINTF4C("Blocking on sys_recv: %d.\n", curenv->env_id);
 	sys_yield();
 
