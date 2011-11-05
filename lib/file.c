@@ -131,7 +131,7 @@ devfile_write(struct Fd *fd, const void *buf, size_t n)
 
 	while (n > 0) {
 		int part_size = n < write_limit ? n : write_limit;
-		memcpy(fsipcbuf.write.req_buf, buf + written, part_size);
+		memmove(fsipcbuf.write.req_buf, buf + written, part_size);
 
 		int part_written = fsipc(FSREQ_WRITE, NULL);
 
