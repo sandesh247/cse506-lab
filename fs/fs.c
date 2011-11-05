@@ -64,7 +64,8 @@ alloc_block(void)
 	// LAB 5: Your code here.
 	// panic("alloc_block not implemented");
 	uint32_t all_set = ~(uint32_t)0;
-	for (int i = 0; i < super->s_nblocks / 32; ++i) {
+	int i;
+	for (i = 0; i < super->s_nblocks / 32; ++i) {
 		if (bitmap[i] != 0) {
 			int blockno = i*32;
 			while (blockno < (i+1) * 32 && !block_is_free(blockno)) {
