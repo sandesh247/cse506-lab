@@ -1,3 +1,4 @@
+// -*- c-basic-offset:8; indent-tabs-mode:t -*-
 /*
  * File system server main loop -
  * serves IPC requests from other environments.
@@ -200,11 +201,14 @@ serve_set_size(envid_t envid, struct Fsreq_set_size *req)
 int
 serve_read(envid_t envid, union Fsipc *ipc)
 {
-	struct Fsreq_read *req = &ipc->read;
+	struct Fsreq_read *preq = &ipc->read;
 	struct Fsret_read *ret = &ipc->readRet;
 
-	if (debug)
-		cprintf("serve_read %08x %08x %08x\n", envid, req->req_fileid, req->req_n);
+	struct Fsreq_read req = ipc->read;
+
+	if (debug) {
+		cprintf("serve_read %08x %08x %08x\n", envid, preq->req_fileid, preq->req_n);
+        }
 
 	// Look up the file id, read the bytes into 'ret', and update
 	// the seek position.  Be careful if req->req_n > PGSIZE
@@ -215,7 +219,26 @@ serve_read(envid_t envid, union Fsipc *ipc)
 	// Hint: Use file_read.
 	// Hint: The seek position is stored in the struct Fd.
 	// LAB 5: Your code here
-	panic("serve_read not implemented");
+	// panic("serve_read not implemented");
+
+	int r;
+	struct OpenFile *po = NULL;
+	struct File *pf = NULL;
+	struct Fd *pfd = NULL;
+	if ((r = openfile_lookup(0, req.req_fileid, &po)) != 0) {
+		return r;
+	}
+
+	pf  = po->o_file;
+	pfd = po->o_fd;
+	int to_read = req.req_n > PGSIZE ? PGSIZE : req.req_n;
+
+	ssize_t bytes = file_read(pf, ret->ret_buf, to_read, pfd->fd_offset);
+	if (bytes > 0) {
+		pfd->fd_offset += bytes;
+	}
+
+	return bytes;
 }
 
 // Write req->req_n bytes from req->req_buf to req_fileid, starting at
