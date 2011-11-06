@@ -31,6 +31,7 @@ block_is_free(uint32_t blockno)
 {
 	if (super == 0 || blockno >= super->s_nblocks)
 		return 0;
+	// DPRINTF5("block_is_free::%d: MASK: %u (%x)\n", blockno, bitmap[blockno / 32], bitmap[blockno / 32] & (1 << (blockno % 32)));
 	if (bitmap[blockno / 32] & (1 << (blockno % 32)))
 		return 1;
 	return 0;
@@ -65,14 +66,18 @@ alloc_block(void)
 	// panic("alloc_block not implemented");
 	uint32_t all_set = ~(uint32_t)0;
 	int i;
+	bitmap[0] &= ~1;
 	for (i = 0; i < super->s_nblocks / 32; ++i) {
+		// DPRINTF5("bitmap[%d] == %u\n", i, bitmap[i]);
+
 		if (bitmap[i] != 0) {
 			int blockno = i*32;
 			while (blockno < (i+1) * 32 && !block_is_free(blockno)) {
 				++blockno;
 			}
 			// blockno _is_ free. We allocate it now
-			bitmap[blockno/32] &= ~((uint32_t)1)<<(blockno%32);
+			bitmap[blockno/32] &= ~(((uint32_t)1)<<(blockno%32));
+			// DPRINTF5("Returning previously free block %d. bitmap[%d] = %u\n", blockno, blockno/32, bitmap[blockno/32]);
 			return blockno;
 		}
 	}
@@ -435,6 +440,8 @@ file_write(struct File *f, const void *buf, size_t count, off_t offset)
 	int r, bn;
 	off_t pos;
 	char *blk;
+
+	DPRINTF5("file_write: Writing %u bytes at offset %u.\n", count, offset);
 
 	// Extend file if necessary
 	if (offset + count > f->f_size)

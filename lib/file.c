@@ -135,21 +135,26 @@ devfile_write(struct Fd *fd, const void *buf, size_t n)
 	// remember that write is always allowed to write *fewer*
 	// bytes than requested.
 	// LAB 5: Your code here
+	DPRINTF5("devfile_write: writing %d bytes\n:", n);
 	assert(buf);
 	fsipcbuf.write.req_fileid = fd->fd_file.id;
 
 	ssize_t written = 0;
-	ssize_t write_limit = sizeof(fsipcbuf.write.req_buf);
+	size_t write_limit = sizeof(fsipcbuf.write.req_buf);
 
 	while (n > 0) {
-		int part_size = n < write_limit ? n : write_limit;
+		size_t part_size = n < write_limit ? n : write_limit;
 		memmove(fsipcbuf.write.req_buf, buf + written, part_size);
+		fsipcbuf.write.req_n = part_size;
 
-		int part_written = fsipc(FSREQ_WRITE, NULL);
+		ssize_t part_written = fsipc(FSREQ_WRITE, NULL);
 
 		if(part_written < 0) {
+			DPRINTF5("devfile_write: Error writing: %e.\n", part_written);
 			return part_written;
 		}
+
+		DPRINTF5("devfile_write: Wrote %d bytes of %d.\n", part_written, n);
 
 		written += part_written;
 		n -= part_written;
