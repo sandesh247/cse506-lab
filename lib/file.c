@@ -67,6 +67,10 @@ open(const char *path, int mode)
 
 	// LAB 5: Your code here.
 	// panic("open not implemented");
+	if (strlen(path) >= MAXPATHLEN) {
+		return -E_BAD_PATH;
+	}
+
 	struct Fd *pfd = NULL;
 	int r = fd_alloc(&pfd);
 	if (r < 0) {
@@ -81,7 +85,8 @@ open(const char *path, int mode)
 		goto cleanup;
 	}
 
-	return r;
+	// return pfd->fd_file.id;
+	return fd2num(pfd);
 
  cleanup:
 	if (pfd) {

@@ -376,10 +376,14 @@ serve(void)
 		pg = NULL;
 		if (req == FSREQ_OPEN) {
 			r = serve_open(whom, (struct Fsreq_open*)fsreq, &pg, &perm);
-			DPRINTF5("Error [%d] in serve_open: %e\n", r, r);
+			if (r < 0) {
+				DPRINTF5("Error [%d] in serve_open: %e\n", r, r);
+			}
 		} else if (req < NHANDLERS && handlers[req]) {
 			r = handlers[req](whom, fsreq);
-			DPRINTF5("Error [%d] handling function: %e\n", r, r);
+			if (r < 0) {
+				DPRINTF5("Error [%d] handling function: %e\n", r, r);
+			}
 		} else {
 			cprintf("Invalid request code %d from %08x\n", whom, req);
 			r = -E_INVAL;

@@ -163,7 +163,7 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 	if(filebno < NDIRECT) {
 		// disk block found
 		*ppdiskbno = f->f_direct + filebno;
-		DPRINTF5("Found filbeno %d\n", filebno);
+		DPRINTF5("Found filebno %d\n", filebno);
 		return 0;
 	} else {
 		// we need to look up the indirect block
@@ -210,7 +210,7 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 int
 file_get_block(struct File *f, uint32_t filebno, char **blk)
 {
-	DPRINTF5("(%x, %u, %x)\n", f, filebno, blk);
+	DPRINTF5("file_get_block(%x, %u, %x)\n", f, filebno, blk);
 
 	// LAB 5: Your code here.
 	// panic("file_get_block not implemented");
