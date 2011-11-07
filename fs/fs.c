@@ -64,20 +64,12 @@ alloc_block(void)
 
 	// LAB 5: Your code here.
 	// panic("alloc_block not implemented");
-	uint32_t all_set = ~(uint32_t)0;
-	int i;
-	bitmap[0] &= ~1;
-	for (i = 0; i < super->s_nblocks / 32; ++i) {
-		// DPRINTF5("bitmap[%d] == %u\n", i, bitmap[i]);
-
-		if (bitmap[i] != 0) {
-			int blockno = i*32;
-			while (blockno < (i+1) * 32 && !block_is_free(blockno)) {
-				++blockno;
-			}
-			// blockno _is_ free. We allocate it now
+	int blockno;
+	for (blockno = 2 + super->s_nblocks / BLKBITSIZE; blockno < super->s_nblocks; ++blockno) {
+		// DPRINTF5("bitmap[%d] == %u\n", blockno/32, bitmap[blockno/32]);
+		if (block_is_free(blockno)) {
 			bitmap[blockno/32] &= ~(((uint32_t)1)<<(blockno%32));
-			// DPRINTF5("Returning previously free block %d. bitmap[%d] = %u\n", blockno, blockno/32, bitmap[blockno/32]);
+			flush_block(diskaddr(2 + blockno / BLKBITSIZE));
 			return blockno;
 		}
 	}
@@ -165,36 +157,42 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 		*ppdiskbno = f->f_direct + filebno;
 		DPRINTF5("Found filebno %d\n", filebno);
 		return 0;
-	} else {
-		// we need to look up the indirect block
-		if(f->f_indirect) {
-			uint32_t *indirect = diskaddr(f->f_indirect);
-			*ppdiskbno = indirect + filebno;
-			DPRINTF5("Found filebno in indirect block.\n");
-			return 0;
-		} else {
-			// indirect block isn't allocated
-			if(!alloc) {
-				// what!? we aren't allowed to allocate one!
-				return -E_NOT_FOUND;
-			} else {
-				// allocate indirect block, and be on your way
-				DPRINTF5("Allocating indeirect block for filebno %d ...\n", filebno);
-				int block_num = alloc_block();
-				if(block_num < 0) {
-					DPRINTF5("Out of disk space for filebno %d!\n", filebno);
-					return -E_NO_DISK;
-				}
-
-				DPRINTF5("Got block number %d for filebno %d.\n", block_num, filebno);
-				uint32_t *indirect = diskaddr(block_num);
-				f->f_indirect = block_num;
-				memset(indirect, 0, BLKSIZE);
-				*ppdiskbno = indirect + filebno;
-				return 0;
-			}
-		}
 	}
+
+	// we need to look up the indirect block
+	int did_alloc = 0;
+	if (!f->f_indirect) {
+		// The indirect block isn't allocated
+		if (!alloc) {
+			// what!? we aren't allowed to allocate one!
+			return -E_NOT_FOUND;
+		}
+
+		// Not allocated, and we are allowed to allocate one
+		// Allocate an indirect block, and be on our way
+		DPRINTF5("Allocating indeirect block for filebno %d ...\n", filebno);
+		int block_num = alloc_block();
+		if (block_num < 0) {
+			DPRINTF5("Out of disk space for filebno %d!\n", filebno);
+			return -E_NO_DISK;
+		}
+		did_alloc = 1;
+		f->f_indirect = block_num;
+
+		DPRINTF5("Got block number %d for filebno %d.\n", block_num, filebno);
+	}
+	else {
+		DPRINTF5("Found filebno '%d' in indirect block.\n", filebno);
+	}
+
+	uint32_t *indirect = diskaddr(f->f_indirect);
+
+	if (did_alloc) {
+		memset(indirect, 0, BLKSIZE);
+	}
+
+	*ppdiskbno = indirect + filebno;
+	return 0;
 
 	// panic("file_block_walk not implemented");
 }

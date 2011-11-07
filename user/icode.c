@@ -25,15 +25,17 @@ umain(void)
         if ((fd = open("/init", O_RDONLY)) < 0) {
             panic("[1] Error opening /init\n");
         }
+        int o = 0;
 	while ((n = read(fd, buf, sizeof buf-1)) > 0) {
-            cprintf("Showing ASCII: ");
+            o += n;
+            cprintf("Showing ASCII for offset: %d: ", o - n);
             int j;
             for (j = 0; j < n; ++j) {
                 if (buf[j] >= '0' && buf[j] <= 'z') {
                     sys_cputs(buf + j, 1);
                 }
             }
-            cprintf("\n");
+            cprintf("--DONE\n");
         }
 	close(fd);
         // /ADDED
