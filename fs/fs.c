@@ -155,6 +155,8 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 	if(filebno < NDIRECT) {
 		// disk block found
 		*ppdiskbno = f->f_direct + filebno;
+		DPRINTF5("[1] Disk block address of file block %d is %d\n", filebno, **ppdiskbno);
+
 		DPRINTF5("Found filebno %d\n", filebno);
 		return 0;
 	}
@@ -192,6 +194,8 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 	}
 
 	*ppdiskbno = indirect + filebno;
+	DPRINTF5("[2] Disk block address of file block %d is %d\n", filebno, **ppdiskbno);
+
 	return 0;
 
 	// panic("file_block_walk not implemented");
