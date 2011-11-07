@@ -193,7 +193,13 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 		memset(indirect, 0, BLKSIZE);
 	}
 
-	*ppdiskbno = indirect + filebno;
+	*ppdiskbno = indirect + filebno - 10;
+	/*
+	  int i;
+	  for (i = 10; i < 20; ++i) {
+	  DPRINTF5("indirect + %d = %d\n", i, *(indirect + i));
+	  }
+	*/
 	DPRINTF5("[2] Disk block address of file block %d is %d (did_alloc: %d)\n", filebno, **ppdiskbno, did_alloc);
 
 	return 0;

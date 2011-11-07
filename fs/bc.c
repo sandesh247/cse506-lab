@@ -86,12 +86,12 @@ flush_block(void *addr)
 
 	uint32_t secno = (uint32_t)ROUNDDOWN(addr - DISKMAP, PGSIZE) / SECTSIZE;
 	char *dst = (char*)ROUNDDOWN(addr, PGSIZE);
-	int i, r;
+	int r;
 
 	// Read in the page
-		if ((r = ide_write(secno, dst, BLKSECTS)) != 0) {
-			panic("bc_pgfault::Error write sector from disk: %e\n", r);
-		}
+	if ((r = ide_write(secno, dst, BLKSECTS)) != 0) {
+		panic("bc_pgfault::Error write sector from disk: %e\n", r);
+	}
 
 	if((r = sys_page_map(0, ROUNDDOWN(addr, PGSIZE), 0, ROUNDDOWN(addr, PGSIZE), PTE_USER)) != 0) {
 		panic("Could not update status of page in va: %e.", r);

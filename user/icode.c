@@ -27,6 +27,12 @@ umain(void)
         }
         int o = 0;
 	while ((n = read(fd, buf, sizeof buf-1)) > 0) {
+        }
+        close(fd);
+        if ((fd = open("/init", O_RDONLY)) < 0) {
+            panic("[1] Error opening /init\n");
+        }
+	while ((n = read(fd, buf, sizeof buf-1)) > 0) {
             o += n;
             cprintf("Showing ASCII for offset: %d: ", o - n);
             int j;

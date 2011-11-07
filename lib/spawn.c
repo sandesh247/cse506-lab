@@ -284,6 +284,12 @@ map_segment(envid_t child, uintptr_t va, size_t memsz,
 				return r;
 			if ((r = read(fd, UTEMP, MIN(PGSIZE, filesz-i))) < 0)
 				return r;
+			// TODO: Check: Read again:
+			if ((r = seek(fd, fileoffset + i)) < 0)
+			  return r;
+			if ((r = read(fd, UTEMP, MIN(PGSIZE, filesz-i))) < 0)
+				return r;
+
 			if ((r = sys_page_map(0, UTEMP, child, (void*) (va + i), perm)) < 0)
 				panic("spawn: sys_page_map data: %e", r);
 			// TODO: Uncomment: 
