@@ -184,7 +184,7 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 		DPRINTF5("Got block number %d for filebno %d.\n", block_num, filebno);
 	}
 	else {
-		DPRINTF5("Found filebno '%d' in indirect block.\n", filebno);
+		DPRINTF5("Found filebno '%d' in indirect block at disk block %d.\n", filebno, f->f_indirect);
 	}
 
 	uint32_t *indirect = diskaddr(f->f_indirect);
@@ -194,7 +194,7 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 	}
 
 	*ppdiskbno = indirect + filebno;
-	DPRINTF5("[2] Disk block address of file block %d is %d\n", filebno, **ppdiskbno);
+	DPRINTF5("[2] Disk block address of file block %d is %d (did_alloc: %d)\n", filebno, **ppdiskbno, did_alloc);
 
 	return 0;
 
