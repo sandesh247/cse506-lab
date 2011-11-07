@@ -171,21 +171,6 @@ init_stack(envid_t child, const char **argv, uintptr_t *init_esp)
 	char *string_store;
 	uintptr_t *argv_store;
 
-	// <ADDED for DEBUG>
-	/*
-	if ((r = sys_page_alloc(0, (void*) UTEMP, PTE_P|PTE_U|PTE_W)) < 0)
-		return r;
-
-	if ((r = sys_page_map(0, UTEMP, child, (void*) (USTACKTOP - PGSIZE), PTE_P | PTE_U | PTE_W)) < 0)
-		return r;
-	if ((r = sys_page_unmap(0, UTEMP)) < 0)
-		return r;
-
-	*init_esp = (uintptr_t)(USTACKTOP - 40);
-	return 0;
-	*/
-	// </ADDED for DEBUG>
-
 	// Count the number of arguments (argc)
 	// and the total amount of space needed for strings (string_size).
 	string_size = 0;
@@ -284,25 +269,9 @@ map_segment(envid_t child, uintptr_t va, size_t memsz,
 				return r;
 			if ((r = read(fd, UTEMP, MIN(PGSIZE, filesz-i))) < 0)
 				return r;
-			// TODO: Check: Read again:
-			if ((r = seek(fd, fileoffset + i)) < 0)
-			  return r;
-			if ((r = read(fd, UTEMP, MIN(PGSIZE, filesz-i))) < 0)
-				return r;
-
 			if ((r = sys_page_map(0, UTEMP, child, (void*) (va + i), perm)) < 0)
 				panic("spawn: sys_page_map data: %e", r);
-			// TODO: Uncomment: 
-			// sys_page_unmap(0, UTEMP);
-		}
-		// TODO: Remove:
-		DPRINTF5("VA: %x, ENVID: %d\n", va + i, sys_getenvid());
-		int j;
-		for (j = 0; j < PGSIZE; ++j) {
-			char ch = ((char*)(UTEMP))[j];
-			if (ch >= '0' && ch <= 'z') {
-				cprintf("%c", ch);
-			}
+			sys_page_unmap(0, UTEMP);
 		}
 	}
 	return 0;

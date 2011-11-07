@@ -27,18 +27,8 @@ sys_cputs(const char *s, size_t len)
 	// LAB 3: Your code here.
 	user_mem_assert(curenv, s, len, PTE_U);
 
-	// TODO: REMOVE
-	if (0 && curenv->env_id == 4099) {
-		cprintf("LENGTH: %d\n", len);
-		int i;
-		for (i = 0; i < 4 && s[i]; ++i) {
-			cprintf("%c", s[i]);
-		}
-	}
-	else {
-		// Print the string supplied by the user.
-		cprintf("%.*s", len, s);
-	}
+	// Print the string supplied by the user.
+	cprintf("%.*s", len, s);
 }
 
 // Read a character from the system console without blocking.
@@ -107,9 +97,6 @@ sys_exofork(void)
 	// ne->env_tf.tf_esp = e->env_tf.tf_esp;
 	ne->env_status = ENV_NOT_RUNNABLE;
 
-	// -CHECK- (doubtful)
-	// ne->env_pgfault_upcall = e->env_pgfault_upcall;
-
 	return ne->env_id;
 }
 
@@ -166,14 +153,15 @@ sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
 	}
 
 	if((r = user_mem_check(env, tf, sizeof(struct Trapframe), PTE_U)) < 0) {
-		return -E_BAD_ENV; // TODO: is this right? we are only allowed to return -E_BAD_ENV, accroding to the comments.
+		// Question: Is this right? we are only allowed to
+		// return -E_BAD_ENV, accroding to the comments.
+		return -E_BAD_ENV;
 	}
 
 	env->env_tf = *tf;
 	env->env_tf.tf_ds |= 3;
 	env->env_tf.tf_es |= 3;
 	env->env_tf.tf_ss |= 3;
-	// env->env_tf.tf_esp = USTACKTOP;
 	env->env_tf.tf_cs |= 3;
 	env->env_tf.tf_eflags = FL_IF;
 
@@ -268,13 +256,10 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	DPRINTF4("sys_page_alloc::e: %x, va: %x\n", e, va);
 
 	if (ret) {
-		// TODO: Uncomment: 
 		page_decref(page);
 	}
 	else {
-		// lcr3(e->env_cr3);
 		memset(KADDR(page2pa(page)), 0, PGSIZE);
-		// lcr3(curenv->env_cr3);
 	}
 
 	return ret;
@@ -465,10 +450,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 			return -E_INVAL;
 		}
 
-		// Don't do THIS!!
-		// env->env_ipc_value = (uint32_t) srcva;
-		// FIXME: Map page in target's address space
-
+		// Map page in target's address space
 		if ((error = page_insert(env->env_pgdir, spp, env->env_ipc_dstva, perm)) != 0) {
 			DPRINTF5("Could not insert page at VA %x in environment %x: %e\n", env->env_ipc_dstva, env->env_id, error);
 			return -E_INVAL;
@@ -516,7 +498,6 @@ sys_ipc_recv(void *dstva)
 	curenv->env_ipc_recving = 1;
 	curenv->env_ipc_dstva = dstva;
 	sys_env_set_status(0, ENV_NOT_RUNNABLE);
-	// TODO:Uncomment:
 	curenv->env_tf.tf_regs.reg_eax = 0;
 	DPRINTF4C("Blocking on sys_recv: %d.\n", curenv->env_id);
 	sys_yield();
