@@ -138,7 +138,7 @@ devfile_read(struct Fd *fd, void *buf, size_t n)
 	if (r < 0) {
 		return r;
 	}
-	assert(r >= 0 && r < PGSIZE);
+	assert(r >= 0 && r <= PGSIZE);
 	memmove(buf, &(fsipcbuf.readRet.ret_buf), r);
 	// if (r < PGSIZE) {
 	// ((char*)buf)[r] = '\0';

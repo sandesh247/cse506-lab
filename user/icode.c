@@ -21,6 +21,23 @@ umain(void)
 	cprintf("icode: close /motd\n");
 	close(fd);
 
+        // TODO: ADDED
+        if ((fd = open("/init", O_RDONLY)) < 0) {
+            panic("[1] Error opening /init\n");
+        }
+	while ((n = read(fd, buf, sizeof buf-1)) > 0) {
+            cprintf("Showing ASCII: ");
+            int j;
+            for (j = 0; j < n; ++j) {
+                if (buf[j] >= '0' && buf[j] <= 'z') {
+                    sys_cputs(buf + j, 1);
+                }
+            }
+            cprintf("\n");
+        }
+	close(fd);
+        // /ADDED
+
 	cprintf("icode: spawn /init\n");
 	if ((r = spawnl("/init", "init", "initarg1", "initarg2", (char*)0)) < 0)
 		panic("icode: spawn /init: %e", r);

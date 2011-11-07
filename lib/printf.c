@@ -54,7 +54,7 @@ cprintf(const char *fmt, ...)
 	int cnt;
 
 	va_start(ap, fmt);
-	cnt = vcprintf(fmt, ap);
+        cnt = vcprintf(fmt, ap);
 	va_end(ap);
 
 	return cnt;

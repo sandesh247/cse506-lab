@@ -1,3 +1,4 @@
+// -*- c-basic-offset:8; indent-tabs-mode:t -*-
 #include <inc/lib.h>
 #include <inc/elf.h>
 
@@ -97,17 +98,21 @@ spawn(const char *prog, const char **argv)
 		return -E_NOT_EXEC;
 	}
 
+        DPRINTF5("spawn::Before calling sys_exofork()\n");
 	// Create new child environment
 	if ((r = sys_exofork()) < 0)
 		return r;
 	child = r;
+        DPRINTF5("spawn::After calling sys_exofork()::child: %d)\n", child);
 
 	// Set up trap frame, including initial stack.
 	child_tf = envs[ENVX(child)].env_tf;
 	child_tf.tf_eip = elf->e_entry;
 
-	if ((r = init_stack(child, argv, &child_tf.tf_esp)) < 0)
+	if ((r = init_stack(child, argv, &child_tf.tf_esp)) < 0) {
+		DPRINTF5("spawn::Failed to initialize stack for child: %d (%e)\n", r, r);
 		return r;
+	}
 
 	// Set up program segments as defined in ELF header.
 	ph = (struct Proghdr*) (elf_buf + elf->e_phoff);
@@ -124,15 +129,18 @@ spawn(const char *prog, const char **argv)
 	close(fd);
 	fd = -1;
 
+        DPRINTF5("Before setting child's trapframe\n");
 	if ((r = sys_env_set_trapframe(child, &child_tf)) < 0)
 		panic("sys_env_set_trapframe: %e", r);
 
+        DPRINTF5("Before setting child to RUNNABLE\n");
 	if ((r = sys_env_set_status(child, ENV_RUNNABLE)) < 0)
 		panic("sys_env_set_status: %e", r);
 
 	return child;
 
 error:
+        DPRINTF5("spawn::Exiting with error: %e\n", r);
 	sys_env_destroy(child);
 	close(fd);
 	return r;
@@ -142,7 +150,9 @@ error:
 int
 spawnl(const char *prog, const char *arg0, ...)
 {
-	return spawn(prog, &arg0);
+	int r = spawn(prog, &arg0);
+	DPRINTF5("spawnl returning %d (%e)\n", r, r);
+	return r;
 }
 
 
@@ -160,6 +170,21 @@ init_stack(envid_t child, const char **argv, uintptr_t *init_esp)
 	int argc, i, r;
 	char *string_store;
 	uintptr_t *argv_store;
+
+	// <ADDED for DEBUG>
+	/*
+	if ((r = sys_page_alloc(0, (void*) UTEMP, PTE_P|PTE_U|PTE_W)) < 0)
+		return r;
+
+	if ((r = sys_page_map(0, UTEMP, child, (void*) (USTACKTOP - PGSIZE), PTE_P | PTE_U | PTE_W)) < 0)
+		return r;
+	if ((r = sys_page_unmap(0, UTEMP)) < 0)
+		return r;
+
+	*init_esp = (uintptr_t)(USTACKTOP - 40);
+	return 0;
+	*/
+	// </ADDED for DEBUG>
 
 	// Count the number of arguments (argc)
 	// and the total amount of space needed for strings (string_size).
@@ -261,7 +286,17 @@ map_segment(envid_t child, uintptr_t va, size_t memsz,
 				return r;
 			if ((r = sys_page_map(0, UTEMP, child, (void*) (va + i), perm)) < 0)
 				panic("spawn: sys_page_map data: %e", r);
-			sys_page_unmap(0, UTEMP);
+			// TODO: Uncomment: 
+			// sys_page_unmap(0, UTEMP);
+		}
+		// TODO: Remove:
+		DPRINTF5("VA: %x, ENVID: %d\n", va + i, sys_getenvid());
+		int j;
+		for (j = 0; j < PGSIZE; ++j) {
+			char ch = ((char*)(UTEMP))[j];
+			if (ch >= '0' && ch <= 'z') {
+				cprintf("%c", ch);
+			}
 		}
 	}
 	return 0;

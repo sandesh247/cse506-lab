@@ -73,7 +73,8 @@ i386_init(void)
         // ENV_CREATE(user_spin);
 	// ENV_CREATE(user_pingpong);
 	// ENV_CREATE(user_primes);
-	ENV_CREATE(user_testfile);
+	// ENV_CREATE(user_testfile);
+	ENV_CREATE(user_icode);
 #endif // TEST*
 
 	// Schedule and run the first user environment!

@@ -27,8 +27,18 @@ sys_cputs(const char *s, size_t len)
 	// LAB 3: Your code here.
 	user_mem_assert(curenv, s, len, PTE_U);
 
-	// Print the string supplied by the user.
-	cprintf("%.*s", len, s);
+	// TODO: REMOVE
+	if (0 && curenv->env_id == 4099) {
+		cprintf("LENGTH: %d\n", len);
+		int i;
+		for (i = 0; i < 4 && s[i]; ++i) {
+			cprintf("%c", s[i]);
+		}
+	}
+	else {
+		// Print the string supplied by the user.
+		cprintf("%.*s", len, s);
+	}
 }
 
 // Read a character from the system console without blocking.
@@ -165,7 +175,7 @@ sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
 	env->env_tf.tf_ss |= 3;
 	// env->env_tf.tf_esp = USTACKTOP;
 	env->env_tf.tf_cs |= 3;
-	env->env_tf.tf_eflags |= FL_IF; 
+	env->env_tf.tf_eflags = FL_IF;
 
 	DPRINTF5("sys_env_set_trapframe: returned success.\n");
 
@@ -255,14 +265,17 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	}
 
 	ret = page_insert(e->env_pgdir, page, va, perm);
-	if (ret) {
-		page_decref(page);
-	}
 	DPRINTF4("sys_page_alloc::e: %x, va: %x\n", e, va);
 
-	lcr3(e->env_cr3);
-	// memset(va, 0, PGSIZE);
-	lcr3(curenv->env_cr3);
+	if (ret) {
+		// TODO: Uncomment: 
+		page_decref(page);
+	}
+	else {
+		// lcr3(e->env_cr3);
+		memset(KADDR(page2pa(page)), 0, PGSIZE);
+		// lcr3(curenv->env_cr3);
+	}
 
 	return ret;
 }
@@ -503,6 +516,7 @@ sys_ipc_recv(void *dstva)
 	curenv->env_ipc_recving = 1;
 	curenv->env_ipc_dstva = dstva;
 	sys_env_set_status(0, ENV_NOT_RUNNABLE);
+	// TODO:Uncomment:
 	curenv->env_tf.tf_regs.reg_eax = 0;
 	DPRINTF4C("Blocking on sys_recv: %d.\n", curenv->env_id);
 	sys_yield();
