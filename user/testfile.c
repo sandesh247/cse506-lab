@@ -12,6 +12,7 @@ xopen(const char *path, int mode)
 	strcpy(fsipcbuf.open.req_path, path);
 	fsipcbuf.open.req_omode = mode;
 
+        DPRINTF5("Calling ipc_send(%d, %u, %x)\n", envs[1].env_id, FSREQ_OPEN, &fsipcbuf);
 	ipc_send(envs[1].env_id, FSREQ_OPEN, &fsipcbuf, PTE_P | PTE_W | PTE_U);
 	return ipc_recv(NULL, FVA, NULL);
 }

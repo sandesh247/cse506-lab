@@ -1,3 +1,4 @@
+// -*- c-basic-offset:8; indent-tabs-mode:t -*- 
 // User-level IPC library routines
 
 #include <inc/lib.h>
@@ -23,8 +24,35 @@ int32_t
 ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
 {
 	// LAB 4: Your code here.
-	panic("ipc_recv not implemented");
-	return 0;
+	int error;
+	error = sys_ipc_recv(pg != NULL ? pg : (void *) ~0);
+
+	DPRINTF4C("Received in environment [user] %d.\n", sys_getenvid());
+	assert(env->env_ipc_from);
+
+	if(error < 0) {
+		if(from_env_store) *from_env_store = 0;
+		if(perm_store) *perm_store = 0;
+		return error;
+	}
+
+	if(from_env_store) *from_env_store = env->env_ipc_from;
+	if(perm_store) *perm_store = env->env_ipc_perm;
+
+	/*
+	if(pg) {
+		// the value is a page
+		error = sys_page_map(env->env_ipc_from, (void *) env->env_ipc_value, 
+				     env->env_id, pg, env->env_ipc_perm);
+		if (error) {
+			if(from_env_store) *from_env_store = 0;
+			if(perm_store) *perm_store = 0;
+			return error;
+		}
+	}
+	*/
+
+	return env->env_ipc_value;
 }
 
 // Send 'val' (and 'pg' with 'perm', if 'pg' is nonnull) to 'toenv'.
@@ -39,5 +67,14 @@ void
 ipc_send(envid_t to_env, uint32_t val, void *pg, int perm)
 {
 	// LAB 4: Your code here.
-	panic("ipc_send not implemented");
+	//
+	DPRINTF5("ipc_send(%d, %u, %x)\n", to_env, val, pg);
+	int error;
+	while((error = sys_ipc_try_send(to_env, val, !pg ? (void*)UTOP : pg, perm)) == -E_IPC_NOT_RECV) {
+		sys_yield();
+		DPRINTF4C("Retrying ipc_send() ...\n");
+	}
+        if (error) {
+		panic("Aiee!! sys_ipc_try_send() returned: %e\n", error);
+        }
 }

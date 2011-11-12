@@ -1,3 +1,4 @@
+// -*- c-basic-offset:8; indent-tabs-mode:t -*-
 #include <inc/lib.h>
 #include <inc/elf.h>
 
@@ -97,17 +98,21 @@ spawn(const char *prog, const char **argv)
 		return -E_NOT_EXEC;
 	}
 
+        DPRINTF5("spawn::Before calling sys_exofork()\n");
 	// Create new child environment
 	if ((r = sys_exofork()) < 0)
 		return r;
 	child = r;
+        DPRINTF5("spawn::After calling sys_exofork()::child: %d)\n", child);
 
 	// Set up trap frame, including initial stack.
 	child_tf = envs[ENVX(child)].env_tf;
 	child_tf.tf_eip = elf->e_entry;
 
-	if ((r = init_stack(child, argv, &child_tf.tf_esp)) < 0)
+	if ((r = init_stack(child, argv, &child_tf.tf_esp)) < 0) {
+		DPRINTF5("spawn::Failed to initialize stack for child: %d (%e)\n", r, r);
 		return r;
+	}
 
 	// Set up program segments as defined in ELF header.
 	ph = (struct Proghdr*) (elf_buf + elf->e_phoff);
@@ -124,15 +129,18 @@ spawn(const char *prog, const char **argv)
 	close(fd);
 	fd = -1;
 
+        DPRINTF5("Before setting child's trapframe\n");
 	if ((r = sys_env_set_trapframe(child, &child_tf)) < 0)
 		panic("sys_env_set_trapframe: %e", r);
 
+        DPRINTF5("Before setting child to RUNNABLE\n");
 	if ((r = sys_env_set_status(child, ENV_RUNNABLE)) < 0)
 		panic("sys_env_set_status: %e", r);
 
 	return child;
 
 error:
+        DPRINTF5("spawn::Exiting with error: %e\n", r);
 	sys_env_destroy(child);
 	close(fd);
 	return r;
@@ -142,7 +150,9 @@ error:
 int
 spawnl(const char *prog, const char *arg0, ...)
 {
-	return spawn(prog, &arg0);
+	int r = spawn(prog, &arg0);
+	DPRINTF5("spawnl returning %d (%e)\n", r, r);
+	return r;
 }
 
 

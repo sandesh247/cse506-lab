@@ -60,27 +60,27 @@ ide_set_disk(int d)
 }
 
 int
-ide_read(uint32_t secno, void *dst, size_t nsecs)
+ide_read(uint32_t secno, void *dst, size_t nsects)
 {
 	int r;
 
-	assert(nsecs <= 256);
+	assert(nsects <= 256);
 
 	ide_wait_ready(0);
 
-	outb(0x1F2, nsecs);
+	outb(0x1F2, nsects);
 	outb(0x1F3, secno & 0xFF);
 	outb(0x1F4, (secno >> 8) & 0xFF);
 	outb(0x1F5, (secno >> 16) & 0xFF);
 	outb(0x1F6, 0xE0 | ((diskno&1)<<4) | ((secno>>24)&0x0F));
 	outb(0x1F7, 0x20);	// CMD 0x20 means read sector
 
-	for (; nsecs > 0; nsecs--, dst += SECTSIZE) {
+	for (; nsects > 0; nsects--, dst += SECTSIZE) {
 		if ((r = ide_wait_ready(1)) < 0)
 			return r;
 		insl(0x1F0, dst, SECTSIZE/4);
 	}
-	
+
 	return 0;
 }
 

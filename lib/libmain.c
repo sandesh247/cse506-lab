@@ -1,3 +1,4 @@
+/* -*- c-basic-offset: 8; indent-tabs-mode: t -*- */
 // Called from entry.S to get us going.
 // entry.S already took care of defining envs, pages, vpd, and vpt.
 
@@ -13,7 +14,8 @@ libmain(int argc, char **argv)
 {
 	// set env to point at our env structure in envs[].
 	// LAB 3: Your code here.
-	env = 0;
+	DPRINTF("libmain::sys_getenvid(): %d, ENVX: %d\n", sys_getenvid(), ENVX(sys_getenvid()));
+	env = &envs[ENVX(sys_getenvid())];
 
 	// save the name of the program so that panic() can use it
 	if (argc > 0)

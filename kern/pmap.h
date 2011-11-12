@@ -1,3 +1,4 @@
+/* -*- Mode: C; c-basic-offset: 8; indent-tabs-mode: t -*- */
 /* See COPYRIGHT for copyright information. */
 
 #ifndef JOS_KERN_PMAP_H
@@ -48,6 +49,8 @@ extern pde_t *boot_pgdir;
 extern struct Segdesc gdt[];
 extern struct Pseudodesc gdt_pd;
 
+struct Page_list page_free_list;	// Free list of physical pages
+
 void	i386_vm_init();
 void	i386_detect_memory();
 
@@ -58,8 +61,10 @@ int	page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm);
 void	page_remove(pde_t *pgdir, void *va);
 struct Page *page_lookup(pde_t *pgdir, void *va, pte_t **pte_store);
 void	page_decref(struct Page *pp);
+void	page_incref(struct Page *pp);
 
 void	tlb_invalidate(pde_t *pgdir, void *va);
+static void map_la2pa(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int perm, int use_pa);
 
 int	user_mem_check(struct Env *env, const void *va, size_t len, int perm);
 void	user_mem_assert(struct Env *env, const void *va, size_t len, int perm);
@@ -79,8 +84,10 @@ page2pa(struct Page *pp)
 static inline struct Page*
 pa2page(physaddr_t pa)
 {
-	if (PPN(pa) >= npage)
+	if (PPN(pa) >= npage) {
+		cprintf("pa2page called with addr %x, which is index %d of %d\n", pa, PPN(pa), npage);
 		panic("pa2page called with invalid pa");
+	}
 	return &pages[PPN(pa)];
 }
 
@@ -91,5 +98,7 @@ page2kva(struct Page *pp)
 }
 
 pte_t *pgdir_walk(pde_t *pgdir, const void *va, int create);
+
+void dump_pages(int key);
 
 #endif /* !JOS_KERN_PMAP_H */

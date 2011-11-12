@@ -1,11 +1,11 @@
 #include <inc/lib.h>
 
 struct {
-	char msg1[5000];
-	char msg2[1000];
+    char msg1[5000];
+    char msg2[1000];
 } data = {
-	"this is initialized data",
-	"so is this"
+    "this is initialized data",
+    "so is this"
 };
 
 char bss[6000];
@@ -23,6 +23,15 @@ void
 umain(int argc, char **argv)
 {
 	int i, r, x, want;
+        char tmp[50];
+        tmp[0] = 'L';
+        tmp[1] = 'A';
+        tmp[2] = 'B';
+        tmp[3] = '-';
+        tmp[4] = '5';
+        tmp[5] = '\n';
+        tmp[6] = '\0';
+        cprintf(tmp);
 
 	cprintf("init: running\n");
 
