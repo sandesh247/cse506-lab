@@ -188,7 +188,8 @@ trap_dispatch(struct Trapframe *tf)
 	// Handle clock interrupts.
 	// LAB 4: Your code here.
 	if(tf->tf_trapno == IRQ_OFFSET + IRQ_TIMER) {
-		DPRINTF4C("Handling timer interrrupt\n");
+		// TODO: Uncomment: cprintf("Handling timer interrrupt\n");
+		time_tick();
 		sched_yield();
 	}
 
@@ -217,9 +218,6 @@ trap_dispatch(struct Trapframe *tf)
 		pr->reg_eax = syscall(pr->reg_eax, pr->reg_edx, pr->reg_ecx, 
 				      pr->reg_ebx, pr->reg_edi, pr->reg_esi);
 		return;
-	}
-	else if (tf->tf_trapno == IRQ_OFFSET + IRQ_TIMER) {
-		DPRINTF6("Timer Interrupt!!\n");
 	}
 
 	// Unexpected trap: The user process or the kernel has a bug.
