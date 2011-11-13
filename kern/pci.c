@@ -38,7 +38,7 @@ e100_enable(struct pci_func *pcif) {
 
 // pci_attach_vendor matches the vendor ID and device ID of a PCI device
 struct pci_driver pci_attach_vendor[] = {
-	{ 0x8086, 0x1209, 0 },
+	{ 0x8086, 0x1209, e100_enable },
 	{ 0, 0, 0 },
 };
 
