@@ -32,6 +32,7 @@ struct pci_driver pci_attach_class[] = {
 int
 e100_enable(struct pci_func *pcif) {
 	DPRINTF6("e100_enable(%x)\n", pcif);
+	e100_func = *pcif;
 	pci_func_enable(pcif);
 	return -1;
 }
