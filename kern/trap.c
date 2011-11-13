@@ -218,6 +218,9 @@ trap_dispatch(struct Trapframe *tf)
 				      pr->reg_ebx, pr->reg_edi, pr->reg_esi);
 		return;
 	}
+	else if (tf->tf_trapno == IRQ_OFFSET + IRQ_TIMER) {
+		DPRINTF6("Timer Interrupt!!\n");
+	}
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	DPRINTF4C("trap_dispatch(%x):tf_trapno: %d\n", tf, tf->tf_trapno);
