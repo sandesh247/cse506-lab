@@ -1,3 +1,4 @@
+// -*- c-basic-offset:8; indent-tabs-mode:t -*-
 #include <inc/x86.h>
 #include <inc/assert.h>
 #include <inc/string.h>
@@ -28,9 +29,17 @@ struct pci_driver pci_attach_class[] = {
 	{ 0, 0, 0 },
 };
 
+int
+e100_enable(struct pci_func *pcif) {
+	DPRINTF6("e100_enable(%x)\n", pcif);
+	pci_func_enable(pcif);
+	return -1;
+}
+
 // pci_attach_vendor matches the vendor ID and device ID of a PCI device
 struct pci_driver pci_attach_vendor[] = {
-	{ 0x8086, 0x1229, 0 },
+	{ 0x8086, 0x1209, 0 },
+	{ 0, 0, 0 },
 };
 
 static void
@@ -87,6 +96,7 @@ pci_attach_match(uint32_t key1, uint32_t key2,
 static int
 pci_attach(struct pci_func *f)
 {
+	DPRINTF6("pci_attach(%x)\n", f);
 	return
 		pci_attach_match(PCI_CLASS(f->dev_class), 
 				 PCI_SUBCLASS(f->dev_class),

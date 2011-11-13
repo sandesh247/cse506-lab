@@ -58,7 +58,8 @@ i386_init(void)
 
 #if !defined(TEST_NO_NS)
 	// Start ns.
-	// TODO: Uncomment: ENV_CREATE(net_ns);
+	// TODO: Uncomment: 
+	ENV_CREATE(net_ns);
 #endif
 
 #if defined(TEST)
@@ -67,7 +68,7 @@ i386_init(void)
 #else
 	// Touch all you want.
 
-	ENV_CREATE(user_testtime);
+	// ENV_CREATE(user_testtime);
 	// ENV_CREATE(net_testoutput);
 	// ENV_CREATE(user_echosrv);
 	// ENV_CREATE(user_httpd);
