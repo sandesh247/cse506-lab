@@ -39,19 +39,10 @@ e100_enable(struct pci_func *pcif) {
 		 e100_func.reg_base[1], e100_func.reg_base[2], 
 		 e100_func.reg_base[3]);
 
-	int i;
-	for (i = 0; i < 10; ++i) {
-		outb(0x84, 0);
-	}
 
-	outb(e100_func.reg_base[1] + 0x0, 0);
-	outb(e100_func.reg_base[1] + 0x1, 0);
-	outb(e100_func.reg_base[1] + 0x2, 0);
-	outb(e100_func.reg_base[1] + 0x3, 0);
-
-	for (i = 0; i < 10; ++i) {
-		outb(0x84, 0);
-	}
+	delay(10);
+	outl(e100_func.reg_base[1] + 0x8, 0);
+	delay(10);
 
 	return -1;
 }
@@ -61,6 +52,14 @@ struct pci_driver pci_attach_vendor[] = {
 	{ 0x8086, 0x1209, e100_enable },
 	{ 0, 0, 0 },
 };
+
+void delay(int us) {
+    int i;
+    for (i = 0; i < (double)us/1.25 + 1; ++i) {
+        inb(0x84);
+    }
+}
+
 
 static void
 pci_conf1_set_addr(uint32_t bus,
