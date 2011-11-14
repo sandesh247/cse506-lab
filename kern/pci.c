@@ -29,6 +29,15 @@ struct pci_driver pci_attach_class[] = {
 	{ 0, 0, 0 },
 };
 
+static void
+delay(void)
+{
+	inb(0x84);
+	inb(0x84);
+	inb(0x84);
+	inb(0x84);
+}
+
 int
 e100_enable(struct pci_func *pcif) {
 	DPRINTF6("e100_enable(%x)\n", pcif);
@@ -38,7 +47,6 @@ e100_enable(struct pci_func *pcif) {
 	DPRINTF6("registers: %u, %u, %u, %u\n", e100_func.reg_base[0], 
 		 e100_func.reg_base[1], e100_func.reg_base[2], 
 		 e100_func.reg_base[3]);
-
 
 	delay(10);
 	outl(e100_func.reg_base[1] + 0x8, 0);
