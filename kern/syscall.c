@@ -14,6 +14,7 @@
 #include <kern/console.h>
 #include <kern/sched.h>
 #include <kern/time.h>
+#include <kern/e100.h>
 
 // Print a string to the system console.
 // The string is exactly 'len' characters long.
@@ -517,6 +518,43 @@ sys_time_msec(void)
 	return time_msec();
 }
 
+
+static struct Page*
+_va2pa(struct Env* e, void* va, int size, int perm) {
+	struct Page *page;
+	int r;
+
+	if ((r = user_mem_check(e, va, size, perm))) {
+		DPRINTF6("[1] user_mem_check failed\n");
+		return NULL;
+	}
+
+	uint32_t _va = (uint32_t)va;
+	if ((_va >> 12) != ((_va + size) >> 12)) {
+		return NULL;
+	}
+
+	page = page_lookup(e->env_pgdir, va, 0);
+	if (!page) {
+		return NULL;
+	}
+	return page;
+}
+
+static int
+sys_net_send(void *va, int size) {
+	struct Page *page = _va2pa(curenv, va, size, PTE_U);
+	int r = e100_transmit(page, size, PGOFF(va));
+	DPRINTF6("sys_net_send::r == %d\n", r);
+	return r;
+}
+
+static int
+sys_net_recv(void *va, int size) {
+	// TODO: FIXME:
+	return 0;
+}
+
 // Dispatches to the correct kernel function, passing the arguments.
 int32_t
 syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
@@ -585,6 +623,12 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 
 	case SYS_time_msec:
 		return sys_time_msec();
+
+	case SYS_net_send:
+		return sys_net_send((void*)a1, (int)a2);
+
+	case SYS_net_recv:
+		return sys_net_recv((void*)a1, (int)a2);
 
 	}
 
