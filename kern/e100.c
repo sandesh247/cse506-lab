@@ -19,6 +19,7 @@
 #define E100_SIMPLE_MODE   0x0
 #define E100_CMD_START     0x10
 #define E100_CMD_RESUME    0x20
+#define E100_STATUS_COMPLETE 0x8000
 
 struct pci_func e100_func;
 
@@ -39,7 +40,6 @@ struct tx_cb_t {
 };
 
 struct tx_cb_t tx_cbs[TX_BUFFER_SIZE];
-struct Page *tx_pages[TX_BUFFER_SIZE];
 
 // All entries between top & bottom are unused. The first unused entry
 // is at tx_top. We waste a buffer to simplify the math.
@@ -78,10 +78,27 @@ e100_wait()
 	return 1;
 }
 
+void
+e100_free_transmit_buffers() {
+	DPRINTF6("e100_free_transmit_buffers::before::tx_top: %d, tx_bot: %d\n", tx_top, tx_bot);
+	int i = tx_top;
+	int i1 = (i + 1) % TX_BUFFER_SIZE;
+	for (; i != tx_bot && i1 != tx_bot; ++i) {
+		if (!(tx_cbs[i].status & E100_STATUS_COMPLETE)) {
+			break;
+		}
+		tx_cbs[i].command = 0;
+		i1 = (i + 1) % TX_BUFFER_SIZE;
+	}
+	tx_top = i;
+	tx_bot = (tx_top - 1) % TX_BUFFER_SIZE;
+	DPRINTF6("e100_free_transmit_buffers::after::tx_top: %d, tx_bot: %d\n", tx_top, tx_bot);
+}
+
 int
-e100_transmit(struct Page *pp, int size, int offset) {
-	assert(pp);
-	assert(offset >= 0 && offset < PGSIZE);
+e100_transmit(void *va, int size) {
+	DPRINTF6("e100_transmit(%x, %d)\n", va, size);
+	assert(va);
 	assert(size < PKT_MAX+1);
 
 	if (tx_top == tx_bot) {
@@ -90,10 +107,11 @@ e100_transmit(struct Page *pp, int size, int offset) {
 
 	int i = tx_top;
 	tx_top = (tx_top+1) % TX_BUFFER_SIZE;
-	page_incref(pp);
-	tx_pages[i] = pp;
 	tx_cbs[i].status = 0;
 	tx_cbs[i].command = E100_CMD_TRANSMIT | E100_SIMPLE_MODE | E100_CMD_SUSPEND;
+	tx_cbs[i].byte_count = size;
+	cprintf("sending data: %s\n", va);
+	memmove(tx_cbs[i].data, va, size);
 
 	int r = e100_wait();
 	if (r) {
@@ -103,11 +121,14 @@ e100_transmit(struct Page *pp, int size, int offset) {
 	if (!tx_inited) {
 		tx_inited = 1;
 		e100_send_long_command(4, PADDR(tx_cbs));
+		DPRINTF6("E100::sending start command\n");
 		e100_send_byte_command(2, E100_CMD_START);
 	}
 	else {
-		e100_send_byte_command(2, E100_CMD_RESUME);
+		// e100_send_byte_command(2, E100_CMD_RESUME);
 	}
+
+	e100_free_transmit_buffers();
 
 	return 0;
 }
@@ -133,11 +154,10 @@ e100_enable(struct pci_func *pcif) {
 	// Contruct the transmit buffers
 	int i, i1;
 	memset(tx_cbs, 0, sizeof(tx_cbs));
-	memset(tx_pages, 0, sizeof(tx_pages));
 
 	for (i = 0; i < TX_BUFFER_SIZE; ++i) {
 		i1 = (i+1) % TX_BUFFER_SIZE; // Will wrap around
-		tx_cbs[i].link_addr = PADDR(tx_cbs + i1);
+		tx_cbs[i].link_addr = PADDR((tx_cbs + i1));
 		tx_cbs[i].tbd_array_addr = 0xFFFFFFFF;
 		tx_cbs[i].number = 0;
 		tx_cbs[i].threshold = 0xE0;

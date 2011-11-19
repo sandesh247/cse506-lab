@@ -520,22 +520,20 @@ sys_time_msec(void)
 
 
 static struct Page*
-_va2pa(struct Env* e, void* va, int size, int perm) {
+check_(struct Env* e, void* va, int size, int perm) {
 	struct Page *page;
 	int r;
 
-	if ((r = user_mem_check(e, va, size, perm))) {
-		DPRINTF6("[1] user_mem_check failed\n");
-		return NULL;
-	}
 
 	uint32_t _va = (uint32_t)va;
 	if ((_va >> 12) != ((_va + size) >> 12)) {
+		DPRINTF6("[2] _va2pa::across pages check failed\n");
 		return NULL;
 	}
 
 	page = page_lookup(e->env_pgdir, va, 0);
 	if (!page) {
+		DPRINTF6("[3] _va2pa::page_lookup failed\n");
 		return NULL;
 	}
 	return page;
@@ -543,11 +541,14 @@ _va2pa(struct Env* e, void* va, int size, int perm) {
 
 static int
 sys_net_send(void *va, int size) {
-	struct Page *page = _va2pa(curenv, va, size, PTE_U);
-	if (!page) {
+	DPRINTF6("sys_net_send(%x, %d)\n", va, size);
+	int r;
+	if ((r = user_mem_check(curenv, va, size, PTE_P|PTE_U))) {
+		DPRINTF6("[1] sys_net_send::user_mem_check failed\n");
 		return -1;
 	}
-	int r = e100_transmit(page, size, PGOFF(va));
+
+	r = e100_transmit(va, size);
 	DPRINTF6("sys_net_send::r == %d\n", r);
 	return r;
 }
