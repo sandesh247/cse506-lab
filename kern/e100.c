@@ -80,7 +80,10 @@ e100_wait()
 
 int
 e100_transmit(struct Page *pp, int size, int offset) {
+	assert(pp);
+	assert(offset >= 0 && offset < PGSIZE);
 	assert(size < PKT_MAX+1);
+
 	if (tx_top == tx_bot) {
 		return -E_NO_MEM;
 	}

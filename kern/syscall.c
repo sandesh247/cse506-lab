@@ -544,6 +544,9 @@ _va2pa(struct Env* e, void* va, int size, int perm) {
 static int
 sys_net_send(void *va, int size) {
 	struct Page *page = _va2pa(curenv, va, size, PTE_U);
+	if (!page) {
+		return -1;
+	}
 	int r = e100_transmit(page, size, PGOFF(va));
 	DPRINTF6("sys_net_send::r == %d\n", r);
 	return r;
