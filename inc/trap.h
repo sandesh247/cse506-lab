@@ -34,6 +34,7 @@
 #define IRQ_KBD          1
 #define IRQ_SERIAL       4
 #define IRQ_SPURIOUS     7
+#define IRQ_E100        11
 #define IRQ_IDE         14
 #define IRQ_ERROR       19
 

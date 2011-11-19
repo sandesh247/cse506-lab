@@ -14,6 +14,7 @@
 #include <kern/kclock.h>
 #include <kern/picirq.h>
 #include <kern/time.h>
+#include <kern/e100.h>
 
 static struct Taskstate ts;
 
@@ -51,6 +52,7 @@ extern void irq_kbd();
 extern void irq_serial();
 extern void irq_spurious();
 extern void irq_ide();
+extern void irq_e100();
 
 
 static const char *trapname(int trapno)
@@ -133,6 +135,8 @@ idt_init(void)
         SETGATE(idt[IRQ_OFFSET + IRQ_SERIAL], 0, GD_KT, irq_serial, 0);
         SETGATE(idt[IRQ_OFFSET + IRQ_SPURIOUS], 0, GD_KT, irq_spurious, 0);
         SETGATE(idt[IRQ_OFFSET + IRQ_IDE], 0, GD_KT, irq_ide, 0);
+        SETGATE(idt[IRQ_OFFSET + IRQ_E100], 0, GD_KT, irq_ide, 3);
+
 	// Setup a TSS so that we get the right stack
 	// when we trap to the kernel.
 	ts.ts_esp0 = KSTACKTOP;
@@ -219,9 +223,12 @@ trap_dispatch(struct Trapframe *tf)
 				      pr->reg_ebx, pr->reg_edi, pr->reg_esi);
 		return;
 	}
+	else if (tf->tf_trapno == IRQ_OFFSET + e100_func.irq_line) {
+		DPRINTF6("E100 Interrupt!!\n");
+	}
 
 	// Unexpected trap: The user process or the kernel has a bug.
-	DPRINTF4C("trap_dispatch(%x):tf_trapno: %d\n", tf, tf->tf_trapno);
+	DPRINTF6("trap_dispatch(%x):tf_trapno: %d\n", tf, tf->tf_trapno);
 	print_trapframe(tf);
 	if (tf->tf_cs == GD_KT)
 		panic("unhandled trap in kernel");

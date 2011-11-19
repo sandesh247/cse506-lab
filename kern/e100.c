@@ -13,12 +13,12 @@
 #define TX_BUFFER_SIZE 32
 #define PKT_MAX 1518
 
-#define E100_CMD_TRANSMIT  0x4
-#define E100_CMD_INTERRUPT 0x2000
-#define E100_CMD_SUSPEND   0x4000
-#define E100_SIMPLE_MODE   0x0
-#define E100_CMD_START     0x10
-#define E100_CMD_RESUME    0x20
+#define E100_CMD_TRANSMIT    0x4
+#define E100_CMD_INTERRUPT   0x2000
+#define E100_CMD_SUSPEND     0x4000
+#define E100_SIMPLE_MODE     0x0
+#define E100_CMD_START       0x10
+#define E100_CMD_RESUME      0x20
 #define E100_STATUS_COMPLETE 0x8000
 
 struct pci_func e100_func;
@@ -43,8 +43,8 @@ struct tx_cb_t tx_cbs[TX_BUFFER_SIZE];
 
 // All entries between top & bottom are unused. The first unused entry
 // is at tx_top. We waste a buffer to simplify the math.
-int tx_top = 0, tx_bot = TX_BUFFER_SIZE - 1;
-int tx_inited = 0;
+volatile int tx_top = 0, tx_bot = TX_BUFFER_SIZE - 1;
+volatile int tx_inited = 0;
 
 
 void
@@ -79,6 +79,14 @@ e100_wait()
 }
 
 void
+e100_wait_for_0() {
+	while (tx_cbs[0].status & E100_STATUS_COMPLETE) {
+		DPRINTF6("waiting...\n");
+		delay(3);
+	}
+}
+
+void
 e100_free_transmit_buffers() {
 	DPRINTF6("e100_free_transmit_buffers::before::tx_top: %d, tx_bot: %d\n", tx_top, tx_bot);
 	int i = tx_top;
@@ -91,7 +99,8 @@ e100_free_transmit_buffers() {
 		i1 = (i + 1) % TX_BUFFER_SIZE;
 	}
 	tx_top = i;
-	tx_bot = (tx_top - 1) % TX_BUFFER_SIZE;
+	tx_bot = (tx_top - 1);
+	tx_bot = tx_bot < 0 ? TX_BUFFER_SIZE + tx_bot : tx_bot;
 	DPRINTF6("e100_free_transmit_buffers::after::tx_top: %d, tx_bot: %d\n", tx_top, tx_bot);
 }
 
@@ -101,19 +110,24 @@ e100_transmit(void *va, int size) {
 	assert(va);
 	assert(size < PKT_MAX+1);
 
+	// e100_free_transmit_buffers();
+
+	/* This is the Rajnikanth kernel. We never run out of memory!
 	if (tx_top == tx_bot) {
 		return -E_NO_MEM;
 	}
+	*/
 
-	int i = tx_top;
+	int i = 0; // tx_top;
 	tx_top = (tx_top+1) % TX_BUFFER_SIZE;
 	tx_cbs[i].status = 0;
 	tx_cbs[i].command = E100_CMD_TRANSMIT | E100_SIMPLE_MODE | E100_CMD_SUSPEND;
 	tx_cbs[i].byte_count = size;
 	cprintf("sending data: %s\n", va);
-	memmove(tx_cbs[i].data, va, size);
+	memmove(tx_cbs[0].data, va, size);
 
-	int r = e100_wait();
+	int r = 0;
+	r = e100_wait();
 	if (r) {
 		cprintf("Waited for too long without any result\n");
 	}
@@ -125,10 +139,11 @@ e100_transmit(void *va, int size) {
 		e100_send_byte_command(2, E100_CMD_START);
 	}
 	else {
-		// e100_send_byte_command(2, E100_CMD_RESUME);
+		e100_wait_for_0();
+		// e100_send_byte_command(2, E100_CMD_START);
+		// e100_send_long_command(4, PADDR((tx_cbs + i)));
+		e100_send_byte_command(2, E100_CMD_RESUME);
 	}
-
-	e100_free_transmit_buffers();
 
 	return 0;
 }
@@ -139,9 +154,12 @@ e100_enable(struct pci_func *pcif) {
 	pci_func_enable(pcif);
 	e100_func = *pcif;
 
+	int i, i1;
+
 	DPRINTF6("registers: %u, %u, %u, %u\n", e100_func.reg_base[0], 
 		 e100_func.reg_base[1], e100_func.reg_base[2], 
 		 e100_func.reg_base[3]);
+	DPRINTF6("E100 IRQ offset: %d\n", e100_func.irq_line);
 
 	delay(10);
 	// Q. How do we know that reg_base[1] contains the address?
@@ -152,18 +170,17 @@ e100_enable(struct pci_func *pcif) {
 	delay(10);
 
 	// Contruct the transmit buffers
-	int i, i1;
 	memset(tx_cbs, 0, sizeof(tx_cbs));
 
 	for (i = 0; i < TX_BUFFER_SIZE; ++i) {
 		i1 = (i+1) % TX_BUFFER_SIZE; // Will wrap around
-		tx_cbs[i].link_addr = PADDR((tx_cbs + i1));
+		tx_cbs[i].link_addr = PADDR((tx_cbs+i)); // PADDR((tx_cbs + i1));
 		tx_cbs[i].tbd_array_addr = 0xFFFFFFFF;
 		tx_cbs[i].number = 0;
 		tx_cbs[i].threshold = 0xE0;
 	}
 
 	// Enable interrupts on our device.
-	irq_setmask_8259A(irq_mask_8259A & ~(1 << e100_func.irq_line));
+	// irq_setmask_8259A(irq_mask_8259A & ~(1 << e100_func.irq_line));
 	return -1;
 }
