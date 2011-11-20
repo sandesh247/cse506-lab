@@ -402,18 +402,18 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	// LAB 4: Your code here.
 	// panic("sys_ipc_try_send not implemented");
 	
-	DPRINTF4C("Trying to send message %u, %x from %d to %d.\n", value, srcva, curenv->env_id, envid);
+	DPRINTF6("Trying to send message %u, %x from %d to %d.\n", value, srcva, curenv->env_id, envid);
 
 	struct Env *env;
 	int error;
 
 	if ((error = envid2env(envid, &env, 0)) < 0) {
-		DPRINTF4C("Bad environment %d.\n", envid);
+		DPRINTF6("Bad environment %d.\n", envid);
 		return -E_BAD_ENV;
 	}
 
 	if (!env->env_ipc_recving) {
-		DPRINTF4C("Bad environment %d - not receiving.\n", envid);
+		DPRINTF6("Bad environment %d - not receiving.\n", envid);
 		return -E_IPC_NOT_RECV;
 	}
 
@@ -425,7 +425,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 		DPRINTF4C("Environment %d looking for mapping in %x.\n", envid, env->env_ipc_dstva);
 
 		if (ROUNDDOWN(srcva, PGSIZE) != srcva) {
-			DPRINTF4C("[2] Bad va %x for environment %d.\n", srcva, curenv->env_id);
+			DPRINTF6("[2] Bad va %x for environment %d.\n", srcva, curenv->env_id);
 			return -E_INVAL;
 		}
 
@@ -443,18 +443,18 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 		
 		spp = page_lookup(curenv->env_pgdir, srcva, &spte);
 		if (spp == 0 || (*spte & PTE_P) == 0) {
-			DPRINTF4C("[3] Bad va %x for environment %d: Not mapped. spp: %x, spte: %d\n", srcva, curenv->env_id, spp, *spte);
+			DPRINTF6("[3] Bad va %x for environment %d: Not mapped. spp: %x, spte: %d\n", srcva, curenv->env_id, spp, *spte);
 			return -E_INVAL;
 		}
 
 		if (perm & PTE_W && !(*spte & PTE_W)) {
-			DPRINTF4C("[4] Bad va %x for environment %d: permission mismatch.\n", srcva, curenv->env_id);
+			DPRINTF6("[4] Bad va %x for environment %d: permission mismatch.\n", srcva, curenv->env_id);
 			return -E_INVAL;
 		}
 
 		// Map page in target's address space
 		if ((error = page_insert(env->env_pgdir, spp, env->env_ipc_dstva, perm)) != 0) {
-			DPRINTF5("Could not insert page at VA %x in environment %x: %e\n", env->env_ipc_dstva, env->env_id, error);
+			DPRINTF6("Could not insert page at VA %x in environment %x: %e\n", env->env_ipc_dstva, env->env_id, error);
 			return -E_INVAL;
 		}
 	}
@@ -544,7 +544,7 @@ sys_net_send(void *va, int size) {
 	DPRINTF6("sys_net_send(%x, %d)\n", va, size);
 	int r;
 	if ((r = user_mem_check(curenv, va, size, PTE_P|PTE_U))) {
-		DPRINTF6("[1] sys_net_send::user_mem_check failed\n");
+		DPRINTF6("sys_net_recv::user_mem_check failed\n");
 		return -1;
 	}
 
@@ -555,8 +555,19 @@ sys_net_send(void *va, int size) {
 
 static int
 sys_net_recv(void *va, int size) {
-	// TODO: FIXME:
-	return 0;
+	DPRINTF6("sys_net_recv(%x, %d)\n", va, size);
+	int r;
+	if ((r = user_mem_check(curenv, va, size, PTE_P|PTE_U|PTE_W))) {
+		DPRINTF6("sys_net_recv::user_mem_check failed with error: %e\n", r);
+		return -1;
+	}
+
+	r = e100_receive(va, size);
+	DPRINTF6("sys_net_recv::r == %d\n", r);
+	if (r < 0) {
+		r = 0;
+	}
+	return r;
 }
 
 // Dispatches to the correct kernel function, passing the arguments.

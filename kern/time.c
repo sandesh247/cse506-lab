@@ -1,4 +1,3 @@
-#include <kern/time.h>
 #include <inc/assert.h>
 
 static unsigned int ticks;
@@ -24,3 +23,4 @@ time_msec(void)
 {
 	return ticks * 10;
 }
+

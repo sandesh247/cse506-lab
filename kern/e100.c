@@ -9,17 +9,22 @@
 #include <inc/x86.h>
 #include <inc/error.h>
 
+
 // Bump this up if we run out of them too fast
 #define TX_BUFFER_SIZE 32
 #define PKT_MAX 1518
 
-#define E100_CMD_TRANSMIT    0x4
-#define E100_CMD_INTERRUPT   0x2000
-#define E100_CMD_SUSPEND     0x4000
-#define E100_SIMPLE_MODE     0x0
-#define E100_CMD_START       0x10
-#define E100_CMD_RESUME      0x20
-#define E100_STATUS_COMPLETE 0x8000
+#define E100_CMD_TRANSMIT       0x4
+#define E100_CMD_INTERRUPT      0x2000
+#define E100_CMD_SUSPEND        0x4000
+#define E100_SIMPLE_MODE        0x0
+#define E100_CMD_START          0x10
+#define E100_CMD_RESUME         0x20
+#define E100_STATUS_COMPLETE    0x8000
+#define E100_STATUS_OK          0x2000
+#define E100_CMD_RECEIVE_START  0x1
+#define E100_CMD_RECEIVE_RESUME 0x2
+
 
 struct pci_func e100_func;
 
@@ -39,12 +44,24 @@ struct tx_cb_t {
 	char data[PKT_MAX];
 };
 
+struct rx_rfd_t {
+	volatile uint16_t status;
+	volatile uint16_t command;
+	volatile uint32_t link_addr;
+	volatile uint32_t reserved;
+	volatile uint16_t actual_count;
+	volatile uint16_t size;
+	char data[PKT_MAX];
+};
+
+
 struct tx_cb_t tx_cbs[TX_BUFFER_SIZE];
+struct rx_rfd_t rx_rfd;
 
 // All entries between top & bottom are unused. The first unused entry
 // is at tx_top. We waste a buffer to simplify the math.
 volatile int tx_top = 0, tx_bot = TX_BUFFER_SIZE - 1;
-volatile int tx_inited = 0;
+volatile int tx_inited = 0, rx_inited = 0;
 
 
 void
@@ -79,8 +96,8 @@ e100_wait()
 }
 
 void
-e100_wait_for_0() {
-	while (tx_cbs[0].status & E100_STATUS_COMPLETE) {
+e100_wait_for_0(volatile uint16_t *status) {
+	while (!((*status) & E100_STATUS_COMPLETE)) {
 		DPRINTF6("waiting...\n");
 		delay(3);
 	}
@@ -105,6 +122,40 @@ e100_free_transmit_buffers() {
 }
 
 int
+e100_receive(void *va, int size) {
+	DPRINTF6("e100_receive(%x, %d)\n", va, size);
+	rx_rfd.command = E100_CMD_SUSPEND;
+
+	int r = 0;
+	r = e100_wait();
+	if (r) {
+		cprintf("Waited for too long without any result\n");
+	}
+
+	if (!rx_inited) {
+		rx_inited = 1;
+		rx_rfd.status = 0;
+
+		e100_send_long_command(4, PADDR(&rx_rfd));
+		DPRINTF6("E100::sending receive start command\n");
+		e100_send_byte_command(2, E100_CMD_RECEIVE_START);
+		return 0;
+	}
+	else {
+		if (!(rx_rfd.status & E100_STATUS_COMPLETE)) {
+			return 0;
+		}
+
+		int ac = rx_rfd.actual_count & ((1<<14)-1);
+		DPRINTF6("e100_receive::actual_count: %d, size: %d\n", ac, rx_rfd.size);
+		memmove(va, rx_rfd.data, ac);
+		rx_rfd.status = 0;
+		e100_send_byte_command(2, E100_CMD_RECEIVE_RESUME);
+		return ac;
+	}
+}
+
+int
 e100_transmit(void *va, int size) {
 	DPRINTF6("e100_transmit(%x, %d)\n", va, size);
 	assert(va);
@@ -120,7 +171,6 @@ e100_transmit(void *va, int size) {
 
 	int i = 0; // tx_top;
 	tx_top = (tx_top+1) % TX_BUFFER_SIZE;
-	tx_cbs[i].status = 0;
 	tx_cbs[i].command = E100_CMD_TRANSMIT | E100_SIMPLE_MODE | E100_CMD_SUSPEND;
 	tx_cbs[i].byte_count = size;
 	cprintf("sending data: %s\n", va);
@@ -134,14 +184,14 @@ e100_transmit(void *va, int size) {
 
 	if (!tx_inited) {
 		tx_inited = 1;
+		tx_cbs[i].status = 0;
 		e100_send_long_command(4, PADDR(tx_cbs));
-		DPRINTF6("E100::sending start command\n");
+		DPRINTF6("E100::sending send start command\n");
 		e100_send_byte_command(2, E100_CMD_START);
 	}
 	else {
-		e100_wait_for_0();
-		// e100_send_byte_command(2, E100_CMD_START);
-		// e100_send_long_command(4, PADDR((tx_cbs + i)));
+		e100_wait_for_0(&(tx_cbs[0].status));
+		tx_cbs[i].status = 0;
 		e100_send_byte_command(2, E100_CMD_RESUME);
 	}
 
@@ -180,7 +230,11 @@ e100_enable(struct pci_func *pcif) {
 		tx_cbs[i].threshold = 0xE0;
 	}
 
-	// Enable interrupts on our device.
-	// irq_setmask_8259A(irq_mask_8259A & ~(1 << e100_func.irq_line));
+	memset(&rx_rfd, 0, sizeof(rx_rfd));
+
+	rx_rfd.link_addr = PADDR(&rx_rfd);
+	rx_rfd.command = 0;
+	rx_rfd.size = PKT_MAX;
+
 	return -1;
 }
