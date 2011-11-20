@@ -148,6 +148,7 @@ e100_receive(void *va, int size) {
 		}
 
 		int ac = rx_rfd.actual_count & ((1<<14)-1);
+		assert(ac <= size);
 		DPRINTF6("e100_receive::actual_count: %d, size: %d, addr: %x\n", ac, rx_rfd.size, rx_rfd.data);
 		struct jif_pkt *p = (struct jif_pkt*)va;
 		p->jp_len = ac;
