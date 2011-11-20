@@ -3,7 +3,7 @@
 
 extern union Nsipc nsipcbuf;
 
-char in_buff[PGSIZE * 2];
+// char in_buff[PGSIZE * 2];
 
 void
 input(envid_t ns_envid)
@@ -17,17 +17,22 @@ input(envid_t ns_envid)
 	// reading from it for a while, so don't immediately receive
 	// another packet in to the same physical page.
 
-        cprintf("input(%d)\n", ns_envid);
+        DPRINTF6("input(%d)\n", ns_envid);
         int r;
-	in_buff[0] = in_buff[PGSIZE] = 'x';
-        void *pkt = (void*)ROUNDDOWN(in_buff + PGSIZE, PGSIZE);
+	// in_buff[0] = in_buff[PGSIZE] = 'x';
+        void *pkt = (void*)(UTEMP + PGSIZE*2);
+	r = sys_page_alloc(0, pkt, PTE_U|PTE_W|PTE_P);
+	assert(r == 0);
 
         while (1) {
 		DPRINTF6("env_id: %d, pkt: %x\n", env->env_id, pkt);
 		r = sys_net_recv(pkt, PGSIZE);
 		DPRINTF6("input::sys_net_recv returned %d\n", r);
+		struct jif_pkt *p = (struct jif_pkt*)pkt;
+		DPRINTF6("input::p->jp_len: %d\n", p->jp_len);
+
 		assert(r >= 0);
-		int eq = in_buff[0] == in_buff[1];
+		// int eq = in_buff[0] == in_buff[1];
 		if (r > 0) {
 			ipc_send(ns_envid, NSREQ_INPUT, pkt, PTE_P|PTE_W|PTE_U);
 			// sys_yield();

@@ -73,6 +73,9 @@ check_testinput() {
 	fi
 
 	# Send num UDP packets
+        # TODO: Uncomment
+        echo "Echo Server Port is $echosrv_port"
+
 	for m in `seq -f '%03g' $num`; do
 		# Don't use "localhost" here or some versions of
 		# netcat will use UDP6, which qemu isn't listening on.

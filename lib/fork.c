@@ -63,7 +63,7 @@ pgfault(struct UTrapframe *utf)
 	uint32_t err = utf->utf_err;
 	int r;
 
-	DPRINTF4("pgfault(va: %x, err: %d)\n", addr, err);
+	DPRINTF6("pgfault(va: %x, EIP: %x, err: %d)\n", addr, utf->utf_eip, err);
 
 	// Check that the faulting access was (1) a write, and (2) to a
 	// copy-on-write page.  If not, panic.
@@ -193,7 +193,7 @@ clone(int shared_heap) {
 			}
 			else {
 				// fork() use-case
-#if 0
+#if 1
 				copypage(new_env, addr, (PTE_P|PTE_U|PTE_W));
 #else
 				r = duppage(new_env, ((uint32_t)addr)/PGSIZE);

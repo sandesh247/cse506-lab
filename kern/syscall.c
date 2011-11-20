@@ -544,7 +544,7 @@ sys_net_send(void *va, int size) {
 	DPRINTF6("sys_net_send(%x, %d)\n", va, size);
 	int r;
 	if ((r = user_mem_check(curenv, va, size, PTE_P|PTE_U))) {
-		DPRINTF6("sys_net_recv::user_mem_check failed\n");
+		DPRINTF6("sys_net_send::user_mem_check failed\n");
 		return -1;
 	}
 

@@ -8,6 +8,7 @@
 #include <inc/memlayout.h>
 #include <inc/x86.h>
 #include <inc/error.h>
+#include <inc/ns.h>
 
 
 // Bump this up if we run out of them too fast
@@ -147,8 +148,15 @@ e100_receive(void *va, int size) {
 		}
 
 		int ac = rx_rfd.actual_count & ((1<<14)-1);
-		DPRINTF6("e100_receive::actual_count: %d, size: %d\n", ac, rx_rfd.size);
-		memmove(va, rx_rfd.data, ac);
+		DPRINTF6("e100_receive::actual_count: %d, size: %d, addr: %x\n", ac, rx_rfd.size, rx_rfd.data);
+		struct jif_pkt *p = (struct jif_pkt*)va;
+		p->jp_len = ac;
+		memmove(p->jp_data, rx_rfd.data, ac);
+
+		// TODO: This is a hack.
+		p->jp_data[ac] = '\0';
+		cprintf("e100_receive::got(%d): %s\n", p->jp_len, p->jp_data+54);
+
 		rx_rfd.status = 0;
 		e100_send_byte_command(2, E100_CMD_RECEIVE_RESUME);
 		return ac;
