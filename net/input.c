@@ -6,6 +6,14 @@ extern union Nsipc nsipcbuf;
 // char in_buff[PGSIZE * 2];
 
 void
+delay(int us) {
+	int i, j;
+    for (i = 0; i < 10000000; ++i) {
+	    j += 20;
+    }
+}
+
+void
 input(envid_t ns_envid)
 {
 	binaryname = "ns_input";
@@ -36,6 +44,10 @@ input(envid_t ns_envid)
 		if (r > 0) {
 			ipc_send(ns_envid, NSREQ_INPUT, pkt, PTE_P|PTE_W|PTE_U);
 			// sys_yield();
+		}
+		else {
+			// sys_yield();
+			delay(100);
 		}
         }
 }

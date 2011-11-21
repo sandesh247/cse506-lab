@@ -12,7 +12,7 @@
 
 
 // Bump this up if we run out of them too fast
-#define TX_BUFFER_SIZE 32
+#define TX_BUFFER_SIZE 64
 #define PKT_MAX 1518
 
 #define E100_CMD_TRANSMIT       0x4
@@ -144,6 +144,7 @@ e100_receive(void *va, int size) {
 	}
 	else {
 		if (!(rx_rfd.status & E100_STATUS_COMPLETE)) {
+			cprintf("E100::Transfer not YET complete\n");
 			return 0;
 		}
 
@@ -155,8 +156,8 @@ e100_receive(void *va, int size) {
 		memmove(p->jp_data, rx_rfd.data, ac);
 
 		// TODO: This is a hack.
-		p->jp_data[ac] = '\0';
-		cprintf("e100_receive::got(%d): %s\n", p->jp_len, p->jp_data+54);
+		// p->jp_data[ac] = '\0';
+		// cprintf("e100_receive::got(%d): %s\n", p->jp_len, p->jp_data+54);
 
 		rx_rfd.status = 0;
 		e100_send_byte_command(2, E100_CMD_RECEIVE_RESUME);
