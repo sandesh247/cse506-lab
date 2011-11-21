@@ -1,6 +1,7 @@
 #include <inc/lib.h>
 #include <lwip/sockets.h>
 #include <lwip/inet.h>
+// #include <lib/fd.h>
 
 #define PORT 80
 #define VERSION "0.1"
@@ -76,8 +77,21 @@ send_header(struct http_request *req, int code)
 static int
 send_data(struct http_request *req, int fd)
 {
+	const int BUF_SIZE = 100;
+
+	char buffer[BUF_SIZE];
+	int r;
+	while((r = readn(fd, buffer, BUF_SIZE)) > 0) {
+		write(req->sock, buffer, r);
+	}
+
+	if(r < 0) {
+		die("Failed to send file to client");
+	}
+
 	// LAB 6: Your code here.
-	panic("send_data not implemented");
+	// panic("send_data not implemented");
+	return r;
 }
 
 static int
@@ -216,6 +230,7 @@ send_file(struct http_request *req)
 	int r;
 	off_t file_size = -1;
 	int fd;
+	struct Stat _stat;
 
 	// open the requested url for reading
 	// if the file does not exist, send a 404 error using send_error
@@ -223,7 +238,23 @@ send_file(struct http_request *req)
 	// set file_size to the size of the file
 
 	// LAB 6: Your code here.
-	panic("send_file not implemented");
+	// panic("send_file not implemented");
+
+	if((r = stat(req->url, &_stat)) < 0) {
+		send_error(req, 404);
+		goto ender;
+	}
+
+	if(_stat.st_isdir) {
+		send_error(req, 404);
+		goto ender;
+	}
+
+	file_size = _stat.st_size;
+
+	fd = open(req->url, O_RDONLY);
+	// since stat succeeded, open should too
+	assert(fd >= 0);
 
 	if ((r = send_header(req, 200)) < 0)
 		goto end;
@@ -241,6 +272,7 @@ send_file(struct http_request *req)
 
 end:
 	close(fd);
+ender:
 	return r;
 }
 
