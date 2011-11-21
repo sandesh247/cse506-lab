@@ -27,10 +27,11 @@ input(envid_t ns_envid)
 
         DPRINTF6("input(%d)\n", ns_envid);
         int r;
+	void *pkt = &(nsipcbuf.pkt);
 	// in_buff[0] = in_buff[PGSIZE] = 'x';
-        void *pkt = (void*)(UTEMP + PGSIZE*2);
-	r = sys_page_alloc(0, pkt, PTE_U|PTE_W|PTE_P);
-	assert(r == 0);
+        // void *pkt = (void*)(UTEMP + PGSIZE*2);
+	// r = sys_page_alloc(0, pkt, PTE_U|PTE_W|PTE_P);
+	// assert(r == 0);
 
         while (1) {
 		DPRINTF6("env_id: %d, pkt: %x\n", env->env_id, pkt);
