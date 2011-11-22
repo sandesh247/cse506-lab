@@ -96,7 +96,7 @@ umain(void)
 		envid_t whom;
 		int perm;
 
-                cprintf("testinput::Calling ipc_recv()\n");
+                // cprintf("testinput::Calling ipc_recv()\n");
 		int32_t req = ipc_recv((int32_t *)&whom, pkt, &perm);
 		if (req < 0)
 			panic("ipc_recv: %e", req);

@@ -1,5 +1,6 @@
 // -*- c-basic-offset:8; indent-tabs-mode:t -*-
 #include "ns.h"
+#include <inc/x86.h>
 
 extern union Nsipc nsipcbuf;
 
@@ -29,9 +30,10 @@ input(envid_t ns_envid)
         int r;
 	void *pkt = &(nsipcbuf.pkt);
 	// in_buff[0] = in_buff[PGSIZE] = 'x';
+	void *sbuff = (void*)(UTEMP + PGSIZE*2);
         // void *pkt = (void*)(UTEMP + PGSIZE*2);
-	// r = sys_page_alloc(0, pkt, PTE_U|PTE_W|PTE_P);
-	// assert(r == 0);
+	r = sys_page_alloc(0, sbuff, PTE_U|PTE_W|PTE_P);
+	assert(r == 0);
 
         while (1) {
 		DPRINTF6("env_id: %d, pkt: %x\n", env->env_id, pkt);
@@ -43,12 +45,14 @@ input(envid_t ns_envid)
 		assert(r >= 0);
 		// int eq = in_buff[0] == in_buff[1];
 		if (r > 0) {
-			ipc_send(ns_envid, NSREQ_INPUT, pkt, PTE_P|PTE_W|PTE_U);
-			// sys_yield();
+			// Copy to local buffer
+			cprintf("Sending IPC message with data: %s\n", p->jp_data+42);
+			memmove(sbuff, pkt, PGSIZE);
+			ipc_send(ns_envid, NSREQ_INPUT, sbuff, PTE_P|PTE_U);
+			sys_yield();
 		}
-		else {
-			// sys_yield();
-			delay(100);
-		}
+
+		DPRINTF6("spinning for a bit, ESP: %x\n", read_esp());
+		delay(100);
         }
 }
