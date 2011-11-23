@@ -9,12 +9,12 @@ extern union Nsipc nsipcbuf;
 void
 delay(int us) {
 	int i, j;
-    for (i = 0; i < 10000000; ++i) {
-	    j += 20;
-    }
+	for (i = 0; i < 10000000; ++i) {
+		j += 20;
+	}
 }
 
-void
+	void
 input(envid_t ns_envid)
 {
 	binaryname = "ns_input";
@@ -26,16 +26,16 @@ input(envid_t ns_envid)
 	// reading from it for a while, so don't immediately receive
 	// another packet in to the same physical page.
 
-        DPRINTF6("input(%d)\n", ns_envid);
-        int r;
+	DPRINTF6("input(%d)\n", ns_envid);
+	int r;
 	void *pkt = &(nsipcbuf.pkt);
 	// in_buff[0] = in_buff[PGSIZE] = 'x';
 	void *sbuff = (void*)(UTEMP + PGSIZE*2);
-        // void *pkt = (void*)(UTEMP + PGSIZE*2);
+	// void *pkt = (void*)(UTEMP + PGSIZE*2);
 	r = sys_page_alloc(0, sbuff, PTE_U|PTE_W|PTE_P);
 	assert(r == 0);
 
-        while (1) {
+	while (1) {
 		DPRINTF6("env_id: %d, pkt: %x\n", env->env_id, pkt);
 		r = sys_net_recv(pkt, PGSIZE);
 		DPRINTF6("input::sys_net_recv returned %d\n", r);
@@ -46,7 +46,7 @@ input(envid_t ns_envid)
 		// int eq = in_buff[0] == in_buff[1];
 		if (r > 0) {
 			// Copy to local buffer
-			cprintf("Sending IPC message with data: %s\n", p->jp_data+42);
+			cprintf("Sending IPC message with data: %s\n", p->jp_data+54);
 			memmove(sbuff, pkt, PGSIZE);
 			ipc_send(ns_envid, NSREQ_INPUT, sbuff, PTE_P|PTE_U);
 			sys_yield();
@@ -54,5 +54,5 @@ input(envid_t ns_envid)
 
 		DPRINTF6("spinning for a bit, ESP: %x\n", read_esp());
 		delay(100);
-        }
+	}
 }
