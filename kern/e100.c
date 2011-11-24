@@ -123,7 +123,7 @@ e100_free_transmit_buffers() {
 }
 
 int
-e100_receive(void *va, int size) {
+e100_receive(volatile void *va, int size) {
 	DPRINTF6("e100_receive(%x, %d)\n", va, size);
 
 	int r = 0;
@@ -144,7 +144,7 @@ e100_receive(void *va, int size) {
 	}
 	else {
 		if (!(rx_rfd.status & E100_STATUS_COMPLETE)) {
-			cprintf("E100::Transfer not YET complete\n");
+			DPRINTF6("E100::Transfer not YET complete\n");
 			return 0;
 		}
 
@@ -157,7 +157,7 @@ e100_receive(void *va, int size) {
 
 		// TODO: This is a hack.
 		// p->jp_data[ac] = '\0';
-		// cprintf("e100_receive::got(%d): %s\n", p->jp_len, p->jp_data+42);
+		DPRINTF6("e100_receive::got(%d): %s\n", p->jp_len, p->jp_data+42);
 
 		rx_rfd.command = E100_CMD_SUSPEND;
 		rx_rfd.status = 0;
@@ -186,7 +186,7 @@ e100_transmit(void *va, int size) {
 	tx_top = (tx_top+1) % TX_BUFFER_SIZE;
 	tx_cbs[i].command = E100_CMD_TRANSMIT | E100_SIMPLE_MODE | E100_CMD_SUSPEND;
 	tx_cbs[i].byte_count = size;
-	cprintf("sending data: %s, size: %d\n", va, size);
+	DPRINTF6("sending data: %s, size: %d\n", va, size);
 	memmove(tx_cbs[0].data, va, size);
 
 	int r = 0;

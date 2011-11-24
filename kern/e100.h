@@ -12,6 +12,6 @@ extern struct pci_func e100_func;
 void delay(int us);
 int e100_enable(struct pci_func *pcif);
 int e100_transmit(void *va, int size);
-int e100_receive(void *va, int size);
+int e100_receive(volatile void *va, int size);
 
 #endif	// JOS_KERN_E100_H
