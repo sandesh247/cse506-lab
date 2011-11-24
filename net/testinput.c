@@ -72,10 +72,12 @@ umain(void)
 
 	binaryname = "testinput";
 
+	SHOUT6("My env id: %d\n", sys_getenvid());
 	output_envid = fork();
 	if (output_envid < 0)
 		panic("error forking");
 	else if (output_envid == 0) {
+		SHOUT6("Using output envid %d.\n", sys_getenvid());
 		output(ns_envid);
 		return;
 	}
@@ -84,8 +86,15 @@ umain(void)
 	if (input_envid < 0)
 		panic("error forking");
 	else if (input_envid == 0) {
+		SHOUT6("Using input envid %d.\n", sys_getenvid());
 		input(ns_envid);
 		return;
+	}
+
+	int loop_to_wait_for_input_and_output_to_be_set = 10;
+	
+	while(--loop_to_wait_for_input_and_output_to_be_set) {
+		sys_yield();
 	}
 
 	cprintf("Sending ARP announcement...\n");
@@ -105,6 +114,7 @@ umain(void)
 		if (req != NSREQ_INPUT)
 			panic("Unexpected IPC %d", req);
 
+		SHOUT6("input: %s\n\n", pkt->jp_data + 42);
 		hexdump("input: ", pkt->jp_data, pkt->jp_len);
 		cprintf("\n");
 	}

@@ -3,7 +3,6 @@
 #include <inc/x86.h>
 
 extern union Nsipc nsipcbuf;
-
 // char in_buff[PGSIZE * 2];
 
 void
@@ -46,13 +45,13 @@ input(envid_t ns_envid)
 		// int eq = in_buff[0] == in_buff[1];
 		if (r > 0) {
 			// Copy to local buffer
-			cprintf("Sending IPC message with data: %s\n", p->jp_data+54);
+			SHOUT6("Sending IPC from %d message with data: %s\n", sys_getenvid(), p->jp_data+42);
 			memmove(sbuff, pkt, PGSIZE);
 			ipc_send(ns_envid, NSREQ_INPUT, sbuff, PTE_P|PTE_U);
-			sys_yield();
+			// sys_yield();
+		} else {
+			DPRINTF6("spinning for a bit, ESP: %x\n", read_esp());
+			delay(100);
 		}
-
-		DPRINTF6("spinning for a bit, ESP: %x\n", read_esp());
-		delay(100);
 	}
 }
