@@ -6,14 +6,6 @@ extern union Nsipc nsipcbuf;
 // char in_buff[PGSIZE * 2];
 
 void
-delay(int us) {
-	int i, j;
-	for (i = 0; i < 10000000; ++i) {
-		j += 20;
-	}
-}
-
-	void
 input(envid_t ns_envid)
 {
 	binaryname = "ns_input";
@@ -29,12 +21,9 @@ input(envid_t ns_envid)
 	int r;
 	void *pkt = &(nsipcbuf.pkt);
 	// in_buff[0] = in_buff[PGSIZE] = 'x';
-	void *sbuff[2] = { (void*)(UTEMP + PGSIZE*2), (void*)(UTEMP + PGSIZE*3) };
-	int which = 0;
+	void *sbuff = (void*)(UTEMP + PGSIZE*2);
 	// void *pkt = (void*)(UTEMP + PGSIZE*2);
-	r = sys_page_alloc(0, sbuff[0], PTE_U|PTE_W|PTE_P);
-	assert(r == 0);
-	r = sys_page_alloc(0, sbuff[1], PTE_U|PTE_W|PTE_P);
+	r = sys_page_alloc(0, sbuff, PTE_U|PTE_W|PTE_P);
 	assert(r == 0);
 
 	while (1) {
@@ -49,17 +38,13 @@ input(envid_t ns_envid)
 		if (r > 0) {
 			// Copy to local buffer
 			SHOUT6("Sending IPC from %d message with data: %s\n", sys_getenvid(), p->jp_data+42);
-			memmove(sbuff[which], pkt, PGSIZE);
-			ipc_send(ns_envid, NSREQ_INPUT, sbuff[which], PTE_P|PTE_U);
-			sys_page_unmap(0, sbuff[which]);
-			r = sys_page_alloc(0, sbuff[which], PTE_U|PTE_W|PTE_P);
+			memmove(sbuff, pkt, PGSIZE);
+			ipc_send(ns_envid, NSREQ_INPUT, sbuff, PTE_P|PTE_U);
+			sys_page_unmap(0, sbuff);
+			r = sys_page_alloc(0, sbuff, PTE_U|PTE_W|PTE_P);
 			assert(r == 0);
-
-			which = (which + 1) % 2;
-			// sys_yield();
 		} else {
 			DPRINTF6("spinning for a bit, ESP: %x\n", read_esp());
 		}
-		delay(100);
 	}
 }
