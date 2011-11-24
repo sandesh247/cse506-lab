@@ -79,9 +79,7 @@ check_testinput() {
 	for m in `seq -f '%03g' $num`; do
 		# Don't use "localhost" here or some versions of
 		# netcat will use UDP6, which qemu isn't listening on.
-                echo "Sending packet $m";
-		echo "Packet $m" | nc -u -q 1 127.0.0.1 $echosrv_port
-                echo "Sent packet $m";
+		echo "Packet $m" | nc -u -q 0 127.0.0.1 $echosrv_port
 	done
 
 	# Wait for the packets to be processed (1 second is usually

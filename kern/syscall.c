@@ -492,7 +492,7 @@ sys_ipc_recv(void *dstva)
 {
 	// LAB 4: Your code here.
 	//
-	DPRINTF4C("Environment %d looking for data on %x.\n", curenv->env_id, dstva);
+	DPRINTF6("Environment %d looking for data on %x.\n", curenv->env_id, dstva);
 	
 	if (ROUNDDOWN(dstva, PGSIZE) != dstva && (uint32_t)dstva < UTOP) {
 		return -E_INVAL;

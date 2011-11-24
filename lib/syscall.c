@@ -127,7 +127,7 @@ sys_time_msec(void)
 int
 sys_net_send(void *va, int size) {
 	int r = syscall(SYS_net_send, 0, (uint32_t)va, (uint32_t)size, 0, 0, 0);
-	cprintf("lib/syscall.c::sys_net_send returning: %d\n", r);
+	DPRINTF6("lib/syscall.c::sys_net_send returning: %d\n", r);
 	return r;
 }
 

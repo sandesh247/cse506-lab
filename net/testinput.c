@@ -91,12 +91,6 @@ umain(void)
 		return;
 	}
 
-	int loop_to_wait_for_input_and_output_to_be_set = 10;
-	
-	while(--loop_to_wait_for_input_and_output_to_be_set) {
-		sys_yield();
-	}
-
 	cprintf("Sending ARP announcement...\n");
 	announce();
 
