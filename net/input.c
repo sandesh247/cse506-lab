@@ -51,6 +51,10 @@ input(envid_t ns_envid)
 			SHOUT6("Sending IPC from %d message with data: %s\n", sys_getenvid(), p->jp_data+42);
 			memmove(sbuff[which], pkt, PGSIZE);
 			ipc_send(ns_envid, NSREQ_INPUT, sbuff[which], PTE_P|PTE_U);
+			sys_page_unmap(0, sbuff[which]);
+			r = sys_page_alloc(0, sbuff[which], PTE_U|PTE_W|PTE_P);
+			assert(r == 0);
+
 			which = (which + 1) % 2;
 			// sys_yield();
 		} else {
