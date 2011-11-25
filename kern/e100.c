@@ -143,6 +143,8 @@ e100_receive(volatile void *va, int size) {
 		return 0;
 	}
 	else {
+		assert(va);
+
 		if (!(rx_rfd.status & E100_STATUS_COMPLETE)) {
 			DPRINTF6("E100::Transfer not YET complete\n");
 			return 0;
@@ -248,6 +250,8 @@ e100_enable(struct pci_func *pcif) {
 	rx_rfd.link_addr = PADDR(&rx_rfd);
 	rx_rfd.command = 0;
 	rx_rfd.size = PKT_MAX;
+
+	e100_receive(0, 0);
 
 	return -1;
 }
