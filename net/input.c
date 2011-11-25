@@ -26,8 +26,9 @@ input(envid_t ns_envid)
 	r = sys_page_alloc(0, sbuff, PTE_U|PTE_W|PTE_P);
 	assert(r == 0);
 
-	SHOUT6("Writing into the buffer ...");
+	// Triggering COW
 	sbuff[0] = 0;
+	nsipcbuf.pkt.jp_len = 0;
 
 	while (1) {
 		DPRINTF6("env_id: %d, pkt: %x\n", env->env_id, pkt);
@@ -35,7 +36,9 @@ input(envid_t ns_envid)
 		DPRINTF6("input::sys_net_recv returned %d\n", r);
 		struct jif_pkt *p = (struct jif_pkt*)pkt;
 		DPRINTF6("input::p->jp_len: %d\n", p->jp_len);
-
+		if(r < 0) {
+			SHOUT6("Error %d, %e.\n", r, r);
+		}
 		assert(r >= 0);
 		// int eq = in_buff[0] == in_buff[1];
 		if (r > 0) {
