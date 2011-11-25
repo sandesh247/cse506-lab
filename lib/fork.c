@@ -193,7 +193,7 @@ clone(int shared_heap) {
 			}
 			else {
 				// fork() use-case
-#if 1
+#if 0
 				copypage(new_env, addr, (PTE_P|PTE_U|PTE_W));
 #else
 				r = duppage(new_env, ((uint32_t)addr)/PGSIZE);

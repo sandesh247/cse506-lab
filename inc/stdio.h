@@ -16,7 +16,7 @@
 #define DPRINTF6 //cprintf
 
 // #define DPRINTF4C(M, ...) cprintf("DEBUG 4C %s:%d:%s:" M, __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__)
-#define SHOUT6(M, ...) //cprintf("SHOUT6 %s:%d:%s: " M, __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__)
+#define SHOUT6 // cprintf
 
 // lib/stdio.c
 void	cputchar(int c);
