@@ -77,8 +77,8 @@ PERL	:= perl
 
 # Compiler flags
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
-# Only optimize to -O1 to discourage inlining, which complicates backtraces.
-CFLAGS := $(CFLAGS) $(DEFS) $(LABDEFS) -O1 -fno-builtin -I$(TOP) -MD 
+# Only optimize to -O1 to discourage inlining, which complicates backtraces. (removed -O1)
+CFLAGS := $(CFLAGS) $(DEFS) $(LABDEFS) -fno-builtin -I$(TOP) -MD 
 CFLAGS += -Wall -Wno-format -Wno-unused -Werror -gstabs -m32
 
 CFLAGS += -I$(TOP)/net/lwip/include \
@@ -132,7 +132,7 @@ PORT7	:= $(shell expr $(GDBPORT) + 1)
 PORT80	:= $(shell expr $(GDBPORT) + 2)
 
 IMAGES = $(OBJDIR)/kern/kernel.img $(OBJDIR)/fs/fs.img
-QEMUOPTS = -no-kvm -hda $(OBJDIR)/kern/kernel.img -hdb $(OBJDIR)/fs/fs.img -serial mon:stdio \
+QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -hdb $(OBJDIR)/fs/fs.img -serial mon:stdio \
 	   -net user -net nic,model=i82559er -redir tcp:$(PORT7)::7 \
 	   -redir tcp:$(PORT80)::80 -redir udp:$(PORT7)::7 $(QEMUEXTRA)
 

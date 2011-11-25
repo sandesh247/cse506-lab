@@ -7,6 +7,17 @@
 #define NULL	((void *) 0)
 #endif /* !NULL */
 
+
+#define DPRINTF2 // cprintf
+#define DPRINTF  // cprintf
+#define DPRINTF4 // cprintf
+#define DPRINTF4C //cprintf
+#define DPRINTF5 //cprintf
+#define DPRINTF6 //cprintf
+
+// #define DPRINTF4C(M, ...) cprintf("DEBUG 4C %s:%d:%s:" M, __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__)
+#define SHOUT6(M, ...) //cprintf("SHOUT6 %s:%d:%s: " M, __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__)
+
 // lib/stdio.c
 void	cputchar(int c);
 int	getchar(void);

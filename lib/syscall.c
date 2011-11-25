@@ -1,3 +1,4 @@
+// -*- c-basic-offset:8; indent-tabs-mode:t -*-
 // System call stubs.
 
 #include <inc/syscall.h>
@@ -121,4 +122,16 @@ unsigned int
 sys_time_msec(void)
 {
 	return (unsigned int) syscall(SYS_time_msec, 0, 0, 0, 0, 0, 0);
+}
+
+int
+sys_net_send(void *va, int size) {
+	int r = syscall(SYS_net_send, 0, (uint32_t)va, (uint32_t)size, 0, 0, 0);
+	DPRINTF6("lib/syscall.c::sys_net_send returning: %d\n", r);
+	return r;
+}
+
+int
+sys_net_recv(void *va, int size) {
+	return syscall(SYS_net_recv, 0, (uint32_t)va, (uint32_t)size, 0, 0, 0);
 }

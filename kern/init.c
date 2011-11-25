@@ -1,3 +1,4 @@
+// -*- c-basic-offset:8; indent-tabs-mode:t -*-
 /* See COPYRIGHT for copyright information. */
 
 #include <inc/stdio.h>
@@ -14,7 +15,6 @@
 #include <kern/picirq.h>
 #include <kern/time.h>
 #include <kern/pci.h>
-
 
 void
 i386_init(void)
@@ -37,7 +37,10 @@ i386_init(void)
 	i386_vm_init();
 
 	// Lab 3 user environment initialization functions
+        cprintf("Before env_init()\n");
 	env_init();
+        cprintf("After env_init()\n");
+
 	idt_init();
 
 	// Lab 4 multitasking initialization functions
@@ -55,6 +58,7 @@ i386_init(void)
 
 #if !defined(TEST_NO_NS)
 	// Start ns.
+	// TODO: Uncomment: 
 	ENV_CREATE(net_ns);
 #endif
 
@@ -64,6 +68,34 @@ i386_init(void)
 #else
 	// Touch all you want.
 	ENV_CREATE(user_icode);
+
+	// ENV_CREATE(user_hello);
+	// ENV_CREATE(net_testinput);
+
+	// ENV_CREATE(user_testtime);
+	// ENV_CREATE(net_testoutput);
+	// ENV_CREATE(user_echosrv);
+	// ENV_CREATE(user_httpd);
+
+	// ENV_CREATE(user_writemotd);
+	// ENV_CREATE(user_testfile);
+	// ENV_CREATE(user_icode);
+        // ENV_CREATE(user_yield);
+	// ENV_CREATE(user_yield);
+	// ENV_CREATE(user_yield);
+	// ENV_CREATE(user_yield);
+        // ENV_CREATE(user_dumbfork);
+        // ENV_CREATE(user_faultdie);
+        // ENV_CREATE(user_faultalloc);
+        // ENV_CREATE(user_faultallocbad);
+        // ENV_CREATE(user_faultregs);
+        // ENV_CREATE(user_faultnostack);
+	// ENV_CREATE(user_forktree);
+        // ENV_CREATE(user_spin);
+	// ENV_CREATE(user_pingpong);
+	// ENV_CREATE(user_primes);
+	// ENV_CREATE(user_testfile);
+	// ENV_CREATE(user_icode);
 #endif // TEST*
 
 	// Should not be necessary - drains keyboard because interrupt has given up.

@@ -6,7 +6,8 @@
 // makes some difference on real hardware,
 // but it makes an even bigger difference on bochs.
 // Primespipe runs 3x faster this way.
-#define ASM 1
+// #define ASM 1
+#define ASM 0
 
 int
 strlen(const char *s)

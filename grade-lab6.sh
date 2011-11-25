@@ -73,6 +73,9 @@ check_testinput() {
 	fi
 
 	# Send num UDP packets
+        # TODO: Uncomment
+        echo "Echo Server Port is $echosrv_port, PID is $PID"
+
 	for m in `seq -f '%03g' $num`; do
 		# Don't use "localhost" here or some versions of
 		# netcat will use UDP6, which qemu isn't listening on.
@@ -82,6 +85,8 @@ check_testinput() {
 	# Wait for the packets to be processed (1 second is usually
 	# enough; if it takes more than 4, something's probably wrong)
 	sleep 4
+
+        echo "After sleep 4"
 
 	kill $PID
 	wait 2> /dev/null
@@ -226,13 +231,13 @@ showpart A
 # switch into asynchronous mode.
 brkfn=
 
-pts=15
-runtest1 -tag "testinput [5 packets]" -dir net testinput -DTEST_NO_NS \
-	-check check_testinput 5
-
 pts=10
 runtest1 -tag "testinput [100 packets]" -dir net testinput -DTEST_NO_NS \
 	-check check_testinput 100
+
+pts=15
+runtest1 -tag "testinput [5 packets]" -dir net testinput -DTEST_NO_NS \
+	-check check_testinput 5
 
 pts=15
 runtest1 -tag 'tcp echo server [echosrv]' echosrv \
@@ -241,6 +246,7 @@ runtest1 -tag 'tcp echo server [echosrv]' echosrv \
 pts=30   # Actually 3 tests
 runtest1 -tag 'web server [httpd]' httpd \
 	-check check_httpd
+
 
 showpart B
 

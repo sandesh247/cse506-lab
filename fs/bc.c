@@ -1,4 +1,4 @@
-
+// -*- c-basic-offset: 8; indent-tabs-mode: t -*-
 #include "fs.h"
 
 // Return the virtual address of this disk block.
@@ -31,18 +31,27 @@ static void
 bc_pgfault(struct UTrapframe *utf)
 {
 	void *addr = (void *) utf->utf_fault_va;
+	DPRINTF5("Faulted at va %x.\n", addr);
 	uint32_t blockno = ((uint32_t)addr - DISKMAP) / BLKSIZE;
 	int r;
 
 	// Check that the fault was within the block cache region
 	if (addr < (void*)DISKMAP || addr >= (void*)(DISKMAP + DISKSIZE))
-		panic("page fault in FS: eip %08x, va %08x, err %04x",
+		panic("page fault in FS: eip %08x, va %08x, err %04x\n",
 		      utf->utf_eip, addr, utf->utf_err);
 
 	// Allocate a page in the disk map region and read the
 	// contents of the block from the disk into that page.
 	//
 	// LAB 5: Your code here
+	if ((r = sys_page_alloc(0, ROUNDDOWN(addr, PGSIZE), PTE_USER)) != 0) {
+		panic("bc_pgfault::Error allocating page: %e\n", r);
+	}
+
+	uint32_t secno = (uint32_t)ROUNDDOWN(addr - DISKMAP, PGSIZE) / SECTSIZE;
+	char *dst = (char*)ROUNDDOWN(addr, PGSIZE);
+
+	ide_read(secno, dst, BLKSECTS);
 
 	// Sanity check the block number. (exercise for the reader:
 	// why do we do this *after* reading the block in?)
@@ -52,6 +61,8 @@ bc_pgfault(struct UTrapframe *utf)
 	// Check that the block we read was allocated.
 	if (bitmap && block_is_free(blockno))
 		panic("reading free block %08x\n", blockno);
+		
+	DPRINTF5("Done reading va %x.\n", addr);
 }
 
 // Flush the contents of the block containing VA out to disk if
@@ -69,8 +80,24 @@ flush_block(void *addr)
 	if (addr < (void*)DISKMAP || addr >= (void*)(DISKMAP + DISKSIZE))
 		panic("flush_block of bad va %08x", addr);
 
-	// LAB 5: Your code here.
-	panic("flush_block not implemented");
+	if(!va_is_mapped(addr) || !va_is_dirty(addr)) {
+		return;
+	}
+
+	uint32_t secno = (uint32_t)ROUNDDOWN(addr - DISKMAP, PGSIZE) / SECTSIZE;
+	char *dst = (char*)ROUNDDOWN(addr, PGSIZE);
+	int r;
+
+	// Read in the page
+	if ((r = ide_write(secno, dst, BLKSECTS)) != 0) {
+		panic("bc_pgfault::Error write sector from disk: %e\n", r);
+	}
+
+	if((r = sys_page_map(0, ROUNDDOWN(addr, PGSIZE), 0, ROUNDDOWN(addr, PGSIZE), PTE_USER)) != 0) {
+		panic("Could not update status of page in va: %e.", r);
+	}
+
+	// panic("flush_block not implemented");
 }
 
 // Test that the block cache works, by smashing the superblock and

@@ -72,10 +72,12 @@ umain(void)
 
 	binaryname = "testinput";
 
+	SHOUT6("My env id: %d\n", sys_getenvid());
 	output_envid = fork();
 	if (output_envid < 0)
 		panic("error forking");
 	else if (output_envid == 0) {
+		SHOUT6("Using output envid %d.\n", sys_getenvid());
 		output(ns_envid);
 		return;
 	}
@@ -84,6 +86,7 @@ umain(void)
 	if (input_envid < 0)
 		panic("error forking");
 	else if (input_envid == 0) {
+		SHOUT6("Using input envid %d.\n", sys_getenvid());
 		input(ns_envid);
 		return;
 	}
@@ -96,6 +99,7 @@ umain(void)
 		envid_t whom;
 		int perm;
 
+                // cprintf("testinput::Calling ipc_recv()\n");
 		int32_t req = ipc_recv((int32_t *)&whom, pkt, &perm);
 		if (req < 0)
 			panic("ipc_recv: %e", req);
@@ -104,6 +108,7 @@ umain(void)
 		if (req != NSREQ_INPUT)
 			panic("Unexpected IPC %d", req);
 
+		SHOUT6("input: %s\n\n", pkt->jp_data + 42);
 		hexdump("input: ", pkt->jp_data, pkt->jp_len);
 		cprintf("\n");
 	}

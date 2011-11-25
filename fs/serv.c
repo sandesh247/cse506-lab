@@ -1,3 +1,4 @@
+// -*- c-basic-offset:8; indent-tabs-mode:t -*-
 /*
  * File system server main loop -
  * serves IPC requests from other environments.
@@ -9,7 +10,7 @@
 #include "fs.h"
 
 
-#define debug 0
+#define debug 1
 
 // The file system server maintains three structures
 // for each open file.
@@ -200,11 +201,15 @@ serve_set_size(envid_t envid, struct Fsreq_set_size *req)
 int
 serve_read(envid_t envid, union Fsipc *ipc)
 {
-	struct Fsreq_read *req = &ipc->read;
+	DPRINTF5("serve_read(%d, %x)\n", envid, ipc);
+	struct Fsreq_read *preq = &ipc->read;
 	struct Fsret_read *ret = &ipc->readRet;
 
-	if (debug)
-		cprintf("serve_read %08x %08x %08x\n", envid, req->req_fileid, req->req_n);
+	struct Fsreq_read req = ipc->read;
+
+	if (debug) {
+		cprintf("serve_read %08x %08x %08x\n", envid, preq->req_fileid, preq->req_n);
+        }
 
 	// Look up the file id, read the bytes into 'ret', and update
 	// the seek position.  Be careful if req->req_n > PGSIZE
@@ -215,7 +220,28 @@ serve_read(envid_t envid, union Fsipc *ipc)
 	// Hint: Use file_read.
 	// Hint: The seek position is stored in the struct Fd.
 	// LAB 5: Your code here
-	panic("serve_read not implemented");
+	// panic("serve_read not implemented");
+
+	int r;
+	struct OpenFile *po = NULL;
+	struct File *pf = NULL;
+	struct Fd *pfd = NULL;
+	r = openfile_lookup(0, req.req_fileid, &po);
+	DPRINTF5("openfile_lookup returned %d (%e)\n", r, r);
+	if (r != 0) {
+		return r;
+	}
+
+	pf  = po->o_file;
+	pfd = po->o_fd;
+	int to_read = req.req_n > PGSIZE ? PGSIZE : req.req_n;
+
+	ssize_t bytes = file_read(pf, ret->ret_buf, to_read, pfd->fd_offset);
+	if (bytes > 0) {
+		pfd->fd_offset += bytes;
+	}
+
+	return bytes;
 }
 
 // Write req->req_n bytes from req->req_buf to req_fileid, starting at
@@ -229,7 +255,19 @@ serve_write(envid_t envid, struct Fsreq_write *req)
 		cprintf("serve_write %08x %08x %08x\n", envid, req->req_fileid, req->req_n);
 
 	// LAB 5: Your code here.
-	panic("serve_write not implemented");
+	int r;
+	struct OpenFile *o;
+
+	if((r = openfile_lookup(envid, req->req_fileid, &o)) < 0) {
+		return r;
+	}
+
+	if((r = file_write(o->o_file, req->req_buf, req->req_n, o->o_fd->fd_offset)) < 0) {
+		return r;
+	}
+
+	o->o_fd->fd_offset += r;
+	return r;
 }
 
 // Stat ipc->stat.req_fileid.  Return the file's struct Stat to the
@@ -338,12 +376,19 @@ serve(void)
 		pg = NULL;
 		if (req == FSREQ_OPEN) {
 			r = serve_open(whom, (struct Fsreq_open*)fsreq, &pg, &perm);
+			if (r < 0) {
+				DPRINTF5("Error [%d] in serve_open: %e\n", r, r);
+			}
 		} else if (req < NHANDLERS && handlers[req]) {
 			r = handlers[req](whom, fsreq);
+			if (r < 0) {
+				DPRINTF5("Error [%d] handling function: %e\n", r, r);
+			}
 		} else {
 			cprintf("Invalid request code %d from %08x\n", whom, req);
 			r = -E_INVAL;
 		}
+		DPRINTF5("About to call ipc_send(%d, %u, %x)\n", whom, r, pg);
 		ipc_send(whom, r, pg, perm);
 		sys_page_unmap(0, fsreq);
 	}

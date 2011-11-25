@@ -1,0 +1,2 @@
+1. in string.h, set ASM to 1
+2. in lib/fork.c use duppage() instead of copypage() #if 1

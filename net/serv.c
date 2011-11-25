@@ -185,10 +185,12 @@ struct st_args {
 
 static void
 serve_thread(uint32_t a) {
+    // cprintf("serve_thread(%x)\n", a);
 	struct st_args *args = (struct st_args *)a;
 	union Nsipc *req = args->req;
 	int r;
 
+        // cprintf("args->reqno: %d\n", args->reqno);
 	switch (args->reqno) {
 	case NSREQ_ACCEPT:
 	{
@@ -230,6 +232,7 @@ serve_thread(uint32_t a) {
 				req->socket.req_protocol);
 		break;
 	case NSREQ_INPUT:
+            // cprintf("INPUT packet type. length: %d\n", req->pkt.jp_len);
 		jif_input(&nif, (void *)&req->pkt);
 		r = 0;
 		break;
@@ -271,7 +274,7 @@ serve(void) {
 		va = get_buffer();
 		reqno = ipc_recv((int32_t *) &whom, (void *) va, &perm);
 		if (debug) {
-			cprintf("ns req %d from %08x\n", reqno, whom);
+                    cprintf("ns req %d from %08x(%d)\n", reqno, whom, whom);
 		}
 
 		// first take care of requests that do not contain an argument page
