@@ -21,10 +21,13 @@ input(envid_t ns_envid)
 	int r;
 	void *pkt = &(nsipcbuf.pkt);
 	// in_buff[0] = in_buff[PGSIZE] = 'x';
-	void *sbuff = (void*)(UTEMP + PGSIZE*2);
+	char *sbuff = (void*)(UTEMP + PGSIZE);
 	// void *pkt = (void*)(UTEMP + PGSIZE*2);
 	r = sys_page_alloc(0, sbuff, PTE_U|PTE_W|PTE_P);
 	assert(r == 0);
+
+	SHOUT6("Writing into the buffer ...");
+	sbuff[0] = 0;
 
 	while (1) {
 		DPRINTF6("env_id: %d, pkt: %x\n", env->env_id, pkt);
@@ -43,6 +46,7 @@ input(envid_t ns_envid)
 			sys_page_unmap(0, sbuff);
 			r = sys_page_alloc(0, sbuff, PTE_U|PTE_W|PTE_P);
 			assert(r == 0);
+			SHOUT6("Writing into the buffer ...");
 		} else {
 			DPRINTF6("spinning for a bit, ESP: %x\n", read_esp());
 		}

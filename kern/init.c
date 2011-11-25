@@ -44,21 +44,28 @@ i386_init(void)
 	idt_init();
 
 	// Lab 4 multitasking initialization functions
+	DPRINTF7("Initializing PIC\n");
 	pic_init();
+	DPRINTF7("Initializing KCLOCK\n");
 	kclock_init();
 
+	DPRINTF7("Initializing TIME\n");
 	time_init();
+	DPRINTF7("Initializing PCI\n");
 	pci_init();
 
 	// Should always have an idle process as first one.
+	DPRINTF7("Creating idle environment\n");
 	ENV_CREATE(user_idle);
 
 	// Start fs.
+	DPRINTF7("Creating FS environment\n");
 	ENV_CREATE(fs_fs);
 
 #if !defined(TEST_NO_NS)
 	// Start ns.
 	// TODO: Uncomment: 
+	DPRINTF7("Creating NET environment\n");
 	ENV_CREATE(net_ns);
 #endif
 
@@ -67,7 +74,7 @@ i386_init(void)
 	ENV_CREATE2(TEST, TESTSIZE);
 #else
 	// Touch all you want.
-	ENV_CREATE(user_icode);
+	ENV_CREATE(user_testpteshare);
 
 	// ENV_CREATE(user_hello);
 	// ENV_CREATE(net_testinput);

@@ -316,12 +316,14 @@ tmain(uint32_t arg) {
 void
 umain(void)
 {
+	DPRINTF7("Net environemnt Starting ...\n");
 	envid_t ns_envid = sys_getenvid();
 
 	binaryname = "ns";
 
 	// fork off the timer thread which will send us periodic messages
 	timer_envid = fork();
+	DPRINTF7("CHECKPOINT\n");
 	if (timer_envid < 0)
 		panic("error forking");
 	else if (timer_envid == 0) {
@@ -338,6 +340,7 @@ umain(void)
 		input(ns_envid);
 		return;
 	}
+	DPRINTF7("CHECKPOINT\n");
 
 	// fork off the output thread that will send the packets to the NIC
 	// driver
@@ -348,11 +351,13 @@ umain(void)
 		output(ns_envid);
 		return;
 	}
+	DPRINTF7("CHECKPOINT\n");
 
 	// lwIP requires a user threading library; start the library and jump
 	// into a thread to continue initialization. 
 	thread_init();
 	thread_create(0, "main", tmain, 0);
 	thread_yield();
+	DPRINTF7("CHECKPOINT\n");
 	// never coming here!
 }
