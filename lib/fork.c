@@ -186,7 +186,6 @@ clone(int shared_heap) {
 		// Copy all the page tables to the child
 		uint8_t *addr;
 		extern unsigned char end[];
-		cprintf("USTACKTOP: %x\n", USTACKTOP);
 		for (addr = (uint8_t*) UTEXT; addr < (uint8_t*)USTACKTOP/* was <= 'end' */; addr += PGSIZE) {
 			int pn = ((uint32_t)addr)/PGSIZE;
 			if (!(vpd[pn / NPTENTRIES]&PTE_P) || !(vpt[pn]&PTE_P)) {
