@@ -14,7 +14,6 @@
 #define RETURN_NON_ZERO(r1, r2) 	if (r1) { return r2; }
 
 
-void (*_old_pgfault_handler)(struct UTrapframe *utf)  = NULL;
 extern void (*_pgfault_handler)(struct UTrapframe *utf);
 
 
@@ -158,9 +157,6 @@ clone(int shared_heap) {
 	int eid = sys_getenvid();
 	DPRINTF7("clone::envid: %d, env: %x\n", eid, &envs[ENVX(eid)]);
 
-	// Save old handler
-	// _old_pgfault_handler = _pgfault_handler;
-
 	// Set page fault handler to COW handler in the parent process
 	set_pgfault_handler(pgfault);
 	DPRINTF7("Successfully set the pgfault_handler in parent\n");
@@ -186,7 +182,6 @@ clone(int shared_heap) {
 		// Copy all the page tables to the child
 		uint8_t *addr;
 		extern unsigned char end[];
-		cprintf("USTACKTOP: %x\n", USTACKTOP);
 		for (addr = (uint8_t*) UTEXT; addr < (uint8_t*)USTACKTOP/* was <= 'end' */; addr += PGSIZE) {
 			int pn = ((uint32_t)addr)/PGSIZE;
 			if (!(vpd[pn / NPTENTRIES]&PTE_P) || !(vpt[pn]&PTE_P)) {
@@ -260,8 +255,6 @@ clone(int shared_heap) {
 envid_t
 fork(void)
 {
-	int a;
-
 	DPRINTF7("Stack size: %d\n", USTACKTOP - read_esp());
 	// LAB 4: Your code here.
 	// panic("fork not implemented");
