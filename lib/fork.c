@@ -14,7 +14,6 @@
 #define RETURN_NON_ZERO(r1, r2) 	if (r1) { return r2; }
 
 
-void (*_old_pgfault_handler)(struct UTrapframe *utf)  = NULL;
 extern void (*_pgfault_handler)(struct UTrapframe *utf);
 
 
@@ -157,9 +156,6 @@ clone(int shared_heap) {
 
 	int eid = sys_getenvid();
 	DPRINTF7("clone::envid: %d, env: %x\n", eid, &envs[ENVX(eid)]);
-
-	// Save old handler
-	// _old_pgfault_handler = _pgfault_handler;
 
 	// Set page fault handler to COW handler in the parent process
 	set_pgfault_handler(pgfault);
