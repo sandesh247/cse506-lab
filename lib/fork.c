@@ -79,8 +79,7 @@ pgfault(struct UTrapframe *utf)
 		panic("pgfault error. write not set. Got: %d\n", (err & 0x7));
 	}
 
-	cprintf("pt: %x\n", &vpt);
-	if(!(vpt[pn] & PTE_COW)) {
+	if((vpd[pn / NPDENTRIES] & PTE_P) && !(vpt[pn] & PTE_COW)) {
 		panic("write fault on a non-COW page");
 	}
 
@@ -126,7 +125,7 @@ duppage(envid_t envid, unsigned pn)
 	// panic("duppage not implemented");
 	void *va = (void*)(pn*PGSIZE);
 	uint32_t pentry = vpt[pn];
-	int page_perms = PTE_PERM(pentry); // & PTE_USER;
+	int page_perms = PTE_PERM(pentry) & PTE_USER;
 	if (page_perms & (PTE_COW | PTE_W) && !(page_perms & PTE_SHARE)) {
 		// Page is writable or COW, but not shared
 		DPRINTF7("page_perms: %d\n", page_perms);
@@ -225,12 +224,12 @@ clone(int shared_heap) {
 	}
 	else {
 		DPRINTF7("[1] In Child (%d), _pgfault_handler: %x\n", sys_getenvid(), _pgfault_handler);
+		DPRINTF7("[2] In Child (%d)\n", sys_getenvid());
 
 		// Child - do nothing here
-		env = &envs[ENVX(sys_getenvid())];
+		env = envs + ENVX(sys_getenvid());
 
-		DPRINTF7("[2] In Child (%d)\n", sys_getenvid());
-		DPRINTF7("[2] In Child\n");
+		DPRINTF7("[3] In Child\n");
 
 		return 0;
 	}
