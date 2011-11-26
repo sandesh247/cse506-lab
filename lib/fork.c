@@ -79,6 +79,7 @@ pgfault(struct UTrapframe *utf)
 		panic("pgfault error. write not set. Got: %d\n", (err & 0x7));
 	}
 
+	cprintf("pt: %x\n", &vpt);
 	if(!(vpt[pn] & PTE_COW)) {
 		panic("write fault on a non-COW page");
 	}
