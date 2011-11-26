@@ -255,8 +255,6 @@ clone(int shared_heap) {
 envid_t
 fork(void)
 {
-	int a;
-
 	DPRINTF7("Stack size: %d\n", USTACKTOP - read_esp());
 	// LAB 4: Your code here.
 	// panic("fork not implemented");
