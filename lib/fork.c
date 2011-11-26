@@ -40,7 +40,7 @@ copypage(envid_t destid, void *addr, int perm) {
 	DPRINTF4("&copypage: %x, addr: %x\n", &copypage, addr);
 
 	// Map *our* PFTEMP to destid's *addr*
-	if((r = sys_page_map(0, PFTEMP, destid, addr, PTE_W|PTE_P|PTE_U /*perm*/)) < 0) {
+	if((r = sys_page_map(0, PFTEMP, destid, addr, /*PTE_W|PTE_P|PTE_U*/ perm)) < 0) {
 		panic("sys_page_map: %e", r);
 	}
 
@@ -186,7 +186,13 @@ clone(int shared_heap) {
 		// Copy all the page tables to the child
 		uint8_t *addr;
 		extern unsigned char end[];
-		for (addr = (uint8_t*) UTEXT; addr <= end /* Check < */; addr += PGSIZE) {
+		cprintf("USTACKTOP: %x\n", USTACKTOP);
+		for (addr = (uint8_t*) UTEXT; addr < (uint8_t*)USTACKTOP/* was <= 'end' */; addr += PGSIZE) {
+			int pn = ((uint32_t)addr)/PGSIZE;
+			if (!(vpd[pn / NPTENTRIES]&PTE_P) || !(vpt[pn]&PTE_P)) {
+				continue;
+			}
+
 			DPRINTF7("[%d<-%d] Mapping page at address: %x\n", new_env, cur_env, addr);
 			if (0 /*shared_heap*/) {
 				// sfork() use-case
@@ -196,7 +202,7 @@ clone(int shared_heap) {
 #if 0
 				copypage(new_env, addr, (PTE_P|PTE_U|PTE_W));
 #else
-				r = duppage(new_env, ((uint32_t)addr)/PGSIZE);
+				r = duppage(new_env, pn);
 				if (r) {
 					panic("duppage: %e\n");
 				}

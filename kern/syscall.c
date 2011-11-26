@@ -227,6 +227,8 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	// panic("sys_page_alloc not implemented");
 
 	DPRINTF4("sys_page_alloc(%x)\n", va);
+	perm &= PTE_USER;
+
 	if ((perm & (PTE_P | PTE_U)) != (PTE_P|PTE_U)) {
 		DPRINTF4("perm 1\n");
 		return -E_INVAL;
@@ -298,6 +300,8 @@ sys_page_map(envid_t srcenvid, void *srcva,
 		srcenvid, srcva, dstenvid, dstva, perm);
 	struct Env *se, *de;
 	int error;
+
+	perm &= PTE_USER;
 
 	error = envid2env(srcenvid, &se, 1);
 	if (error) return -E_BAD_ENV;
