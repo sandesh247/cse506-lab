@@ -286,7 +286,22 @@ map_segment(envid_t child, uintptr_t va, size_t memsz,
 static int
 copy_shared_pages(envid_t child)
 {
-	// LAB 7: Your code here.
+	uint8_t* addr;
+	for (addr = (uint8_t*) UTEXT; addr < (uint8_t*)USTACKTOP/* was <= 'end' */; addr += PGSIZE) {
+		int pn = ((uint32_t)addr)/PGSIZE;
+		if (!(vpd[pn / NPTENTRIES]&PTE_P) || !(vpt[pn]&PTE_P)) {
+			continue;
+		}
+		
+		uint32_t pentry = vpt[pn];
+		int page_perms = PTE_PERM(pentry) & PTE_USER;
+		if (page_perms & PTE_SHARE) {
+			int r = sys_page_map(0, addr, child, addr, page_perms);
+
+			if(r < 0) { return r; }
+		}
+	}
+
 	return 0;
 }
 
