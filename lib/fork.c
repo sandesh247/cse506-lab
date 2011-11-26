@@ -62,7 +62,7 @@ pgfault(struct UTrapframe *utf)
 	uint32_t err = utf->utf_err;
 	int r;
 
-	DPRINTF7("pgfault(va: %x, EIP: %x, err: %d)\n", addr, utf->utf_eip, err);
+	DPRINTF4("pgfault(va: %x, EIP: %x, err: %d)\n", addr, utf->utf_eip, err);
 
 	// Check that the faulting access was (1) a write, and (2) to a
 	// copy-on-write page.  If not, panic.
@@ -127,7 +127,7 @@ duppage(envid_t envid, unsigned pn)
 	int page_perms = PTE_PERM(pentry) & PTE_USER;
 	if (page_perms & (PTE_COW | PTE_W) && !(page_perms & PTE_SHARE)) {
 		// Page is writable or COW, but not shared
-		DPRINTF7("page_perms: %d\n", page_perms);
+		DPRINTF4("page_perms: %d\n", page_perms);
 		page_perms |= PTE_COW;
 		page_perms &= (~PTE_W);
 
@@ -152,19 +152,19 @@ extern void _pgfault_upcall(void);
 
 envid_t
 clone(int shared_heap) {
-	DPRINTF7("clone(%d), PFTEMP: %x\n", shared_heap, PFTEMP);
+	DPRINTF4("clone(%d), PFTEMP: %x\n", shared_heap, PFTEMP);
 
 	int eid = sys_getenvid();
-	DPRINTF7("clone::envid: %d, env: %x\n", eid, &envs[ENVX(eid)]);
+	DPRINTF4("clone::envid: %d, env: %x\n", eid, &envs[ENVX(eid)]);
 
 	// Set page fault handler to COW handler in the parent process
 	set_pgfault_handler(pgfault);
-	DPRINTF7("Successfully set the pgfault_handler in parent\n");
+	DPRINTF4("Successfully set the pgfault_handler in parent\n");
 
 	envid_t cur_env = sys_getenvid();
 	envid_t new_env = sys_exofork();
 	int r;
-	DPRINTF7("clone::new_env: %d\n", new_env);
+	DPRINTF4("clone::new_env: %d\n", new_env);
 
 	if (new_env < 0) {
 		panic("sys_exofork: %e", new_env);
@@ -177,7 +177,7 @@ clone(int shared_heap) {
 
 		// sys_yield();
 
-		DPRINTF7("clone::[1] Parent: _pgfault_handler: %x\n", _pgfault_handler);
+		DPRINTF4("clone::[1] Parent: _pgfault_handler: %x\n", _pgfault_handler);
 
 		// Copy all the page tables to the child
 		uint8_t *addr;
@@ -188,7 +188,7 @@ clone(int shared_heap) {
 				continue;
 			}
 
-			DPRINTF7("[%d<-%d] Mapping page at address: %x\n", new_env, cur_env, addr);
+			DPRINTF4("[%d<-%d] Mapping page at address: %x\n", new_env, cur_env, addr);
 			if (0 /*shared_heap*/) {
 				// sfork() use-case
 			}
@@ -205,7 +205,7 @@ clone(int shared_heap) {
 			}
 		}
 
-		DPRINTF7("RD(&addr): %x, USTACKTOP-PGSIZE: %x\n", ROUNDDOWN(&addr, PGSIZE), USTACKTOP-PGSIZE);
+		DPRINTF4("RD(&addr): %x, USTACKTOP-PGSIZE: %x\n", ROUNDDOWN(&addr, PGSIZE), USTACKTOP-PGSIZE);
 		// Also copy the stack we are currently running on.
 		copypage(new_env, (void*)ROUNDDOWN(&addr, PGSIZE), PTE_P|PTE_W|PTE_U);
 
@@ -220,17 +220,17 @@ clone(int shared_heap) {
 			panic("sys_env_set_status: %e", r);
 		}
 
-		DPRINTF7("clone::returning: %d\n", new_env);
+		DPRINTF4("clone::returning: %d\n", new_env);
 		return new_env;
 	}
 	else {
-		DPRINTF7("[1] In Child (%d), _pgfault_handler: %x\n", sys_getenvid(), _pgfault_handler);
-		DPRINTF7("[2] In Child (%d)\n", sys_getenvid());
+		DPRINTF4("[1] In Child (%d), _pgfault_handler: %x\n", sys_getenvid(), _pgfault_handler);
+		DPRINTF4("[2] In Child (%d)\n", sys_getenvid());
 
 		// Child - do nothing here
 		env = envs + ENVX(sys_getenvid());
 
-		DPRINTF7("[3] In Child\n");
+		DPRINTF4("[3] In Child\n");
 
 		return 0;
 	}
@@ -255,7 +255,7 @@ clone(int shared_heap) {
 envid_t
 fork(void)
 {
-	DPRINTF7("Stack size: %d\n", USTACKTOP - read_esp());
+	DPRINTF4("Stack size: %d\n", USTACKTOP - read_esp());
 	// LAB 4: Your code here.
 	// panic("fork not implemented");
 	return clone(0);

@@ -13,9 +13,9 @@
 #define DPRINTF4 // cprintf
 #define DPRINTF4C // cprintf
 #define DPRINTF5 // cprintf
-#define DPRINTF6 cprintf
+#define DPRINTF6 // cprintf
 #define DPRINTF7 cprintf
-#define SHOUT6 cprintf
+#define SHOUT6 // cprintf
 //#define SHOUT6(M, ...) cprintf("SHOUT6 %s:%d:%s: " M, __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__)
 // #define DPRINTF7(M, ...) cprintf("DPRINTF7 %s:%d:%s: " M, __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__)
 
