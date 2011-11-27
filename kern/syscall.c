@@ -576,9 +576,26 @@ sys_net_recv(void *va, int size) {
 
 static int
 sys_env_get_trapframe(envid_t envid, struct Trapframe *tf) {
-	panic("sys_env_set_trapframe not yet implemented");
+	// panic("sys_env_set_trapframe not yet implemented");
 	// Check if the process is not runnable first
-	return -1;
+	int r;
+	struct Env *env;
+	if((r = envid2env(envid, &env, 1)) < 0) {
+		return -E_BAD_ENV;
+	}
+
+	if (env->env_status != ENV_NOT_RUNNABLE) {
+		cprintf("sys_env_get_trapframe::error: environment %d is RUNNABLE\n", env->env_id);
+		return -1;
+	}
+
+	if((r = user_mem_check(env, tf, sizeof(struct Trapframe), PTE_U)) < 0) {
+		return -E_BAD_ENV;
+	}
+
+	*tf = env->env_tf;
+	return 0;
+
 }
 
 // Dispatches to the correct kernel function, passing the arguments.

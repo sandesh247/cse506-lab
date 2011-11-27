@@ -59,6 +59,8 @@ unsigned int sys_time_msec(void);
 int	sys_net_send(void *va, int size);
 int	sys_net_recv(void *va, int size);
 
+int     sys_env_get_trapframe(envid_t env, struct Trapframe *tf);
+
 // This must be inlined.  Exercise for reader: why?
 static __inline envid_t sys_exofork(void) __attribute__((always_inline));
 static __inline envid_t
