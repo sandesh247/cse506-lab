@@ -10,7 +10,7 @@
 #include "fs.h"
 
 
-#define debug 1
+#define debug 0
 
 // The file system server maintains three structures
 // for each open file.
@@ -206,10 +206,6 @@ serve_read(envid_t envid, union Fsipc *ipc)
 	struct Fsret_read *ret = &ipc->readRet;
 
 	struct Fsreq_read req = ipc->read;
-
-	if (debug) {
-		cprintf("serve_read %08x %08x %08x\n", envid, preq->req_fileid, preq->req_n);
-        }
 
 	// Look up the file id, read the bytes into 'ret', and update
 	// the seek position.  Be careful if req->req_n > PGSIZE

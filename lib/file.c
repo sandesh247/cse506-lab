@@ -3,7 +3,7 @@
 #include <inc/string.h>
 #include <inc/lib.h>
 
-#define debug 1
+#define debug 0
 
 extern union Fsipc fsipcbuf;	// page-aligned, declared in entry.S
 
