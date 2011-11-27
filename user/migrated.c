@@ -2,8 +2,6 @@
 #include <lwip/sockets.h>
 #include <lwip/inet.h>
 
-#define PORT 4321
-
 #define BUFFSIZE 512
 #define MAXPENDING 5
 
@@ -160,7 +158,7 @@ umain(void)
 	memset(&server, 0, sizeof(server));		// Clear struct
 	server.sin_family = AF_INET;			// Internet/IP
 	server.sin_addr.s_addr = htonl(INADDR_ANY);	// IP address
-	server.sin_port = htons(PORT);			// server port
+	server.sin_port = htons(MIG_SERVER_PORT);			// server port
 
 	// Bind the server socket
 	if (bind(serversock, (struct sockaddr *) &server,

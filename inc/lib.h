@@ -160,5 +160,6 @@ int     migrate();
 
 // migration constants
 #define MIG_LAST_ADDR				0xffffffff
+#define MIG_SERVER_PORT			4321
 
 #endif	// !JOS_INC_LIB_H
