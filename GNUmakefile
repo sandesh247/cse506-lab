@@ -130,11 +130,13 @@ include net/Makefrag
 
 PORT7	:= $(shell expr $(GDBPORT) + 1)
 PORT80	:= $(shell expr $(GDBPORT) + 2)
+PORT4321 := 4321
 
 IMAGES = $(OBJDIR)/kern/kernel.img $(OBJDIR)/fs/fs.img
 QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -hdb $(OBJDIR)/fs/fs.img -serial mon:stdio \
 	   -net user -net nic,model=i82559er -redir tcp:$(PORT7)::7 \
-	   -redir tcp:$(PORT80)::80 -redir udp:$(PORT7)::7 $(QEMUEXTRA)
+	   -redir tcp:$(PORT80)::80 -redir udp:$(PORT7)::7 \
+		 -redir tcp:$(PORT4321)::4321 $(QEMUEXTRA)
 
 .gdbinit: .gdbinit.tmpl
 	sed "s/localhost:1234/localhost:$(GDBPORT)/" < $^ > $@
@@ -220,6 +222,7 @@ run-%:
 which-ports:
 	@echo "Local port $(PORT7) forwards to JOS port 7 (echo server)"
 	@echo "Local port $(PORT80) forwards to JOS port 80 (web server)"
+	@echo "Local port $(PORT4321) forwards to JOS port 4321 (migrate server)"
 
 nc-80:
 	nc localhost $(PORT80)
