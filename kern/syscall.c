@@ -574,6 +574,13 @@ sys_net_recv(void *va, int size) {
 	return r;
 }
 
+static int
+sys_env_set_trapframe(envid_t envid, struct Trapframe *tf) {
+	panic("sys_env_set_trapframe not yet implemented");
+	// Check if the process is not runnable first
+	return -1;
+}
+
 // Dispatches to the correct kernel function, passing the arguments.
 int32_t
 syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
@@ -649,6 +656,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	case SYS_net_recv:
 		return sys_net_recv((void*)a1, (int)a2);
 
+	case SYS_env_get_trapframe:
+		return sys_env_get_trapframe((envid_t)a1, (struct Trapframe *)a2);
 	}
 
 	DPRINTF4("syscall number '%d' not yet implemented\n", syscallno);

@@ -135,3 +135,9 @@ int
 sys_net_recv(void *va, int size) {
 	return syscall(SYS_net_recv, 0, (uint32_t)va, (uint32_t)size, 0, 0, 0);
 }
+
+int
+sys_env_get_trapframe(envid_t envid, struct Trapframe *tf)
+{
+	return syscall(SYS_env_get_trapframe, 1, envid, (uint32_t) tf, 0, 0, 0);
+}
