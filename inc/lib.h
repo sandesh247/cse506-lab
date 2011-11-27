@@ -154,4 +154,12 @@ int     migrate();
 #define	O_EXCL		0x0400		/* error if already exists */
 #define O_MKDIR		0x0800		/* create directory, not regular file */
 
+// migrated message types
+#define MIG_HEARTBEAT				0x0000
+#define MIG_PROC_MIGRATE		0x0001
+
+// migration constants
+#define MIG_LAST_ADDR				0xffffffff
+#define MIG_SERVER_PORT			4321
+
 #endif	// !JOS_INC_LIB_H

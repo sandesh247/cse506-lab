@@ -29,7 +29,7 @@ KERN_SRCFILES :=	kern/entry.S \
 			kern/kdebug.c \
 			lib/printfmt.c \
 			lib/readline.c \
-			lib/string.c
+			lib/string.c 
 
 # Source files for LAB6
 KERN_SRCFILES +=	kern/e100.c \
@@ -53,6 +53,7 @@ KERN_BINFILES :=	user/icode \
 			user/testkbd \
 			user/testshell \
 			user/hello \
+			user/migrated \
 			fs/fs \
 			net/testoutput \
 			net/testinput \
