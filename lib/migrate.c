@@ -17,4 +17,5 @@ migrate() {
     // number of pages[npages] (32-bits)
     // 
 
+    return -1;
 }

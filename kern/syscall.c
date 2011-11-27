@@ -575,7 +575,7 @@ sys_net_recv(void *va, int size) {
 }
 
 static int
-sys_env_set_trapframe(envid_t envid, struct Trapframe *tf) {
+sys_env_get_trapframe(envid_t envid, struct Trapframe *tf) {
 	panic("sys_env_set_trapframe not yet implemented");
 	// Check if the process is not runnable first
 	return -1;
