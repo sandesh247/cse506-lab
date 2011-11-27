@@ -10,8 +10,6 @@
  *
  */
 
-#define FAIL(r) { if(r < 0) { panic("Invalid return code (%d): %e", r, r); } }
-
 static void
 die(char *m)
 {
@@ -125,11 +123,17 @@ static void
 handle_client(int sock)
 {
 	int r = readn(sock, &preamble, sizeof(preamble));
-	FAIL(r);
+
+	if(r < 0) {
+		DPRINTF8("Error while trying to read preamble (%d): %e\n", r, r);
+		close(sock);
+		return;
+	}
 
 	// the handle_* functions for each 
 	switch(preamble) {
 		case MIG_HEARTBEAT:
+			DPRINTF8("Received heartbeat <3\n");
 			break;
 		case MIG_PROC_MIGRATE:
 			handle_migrate(sock);
