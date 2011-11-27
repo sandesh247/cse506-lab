@@ -7,55 +7,20 @@
 // Send 'len' bytes from address 'va' from environment 'env_id' to the
 // migrated daemon.
 int
-send_data(envid_t env_id, void *va, int len) {
-	int sock;
-	struct sockaddr_in echoserver;
-	char buffer[BUFFSIZE];
-	unsigned int echolen;
-	int received = 0;
-	
-	cprintf("Connecting to:\n");
-	cprintf("\tip address %s = %x\n", IPADDR, inet_addr(IPADDR));
-	
-	// Create the TCP socket
-	if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
-		die("Failed to create socket");
-	
-	cprintf("opened socket\n");
-	
-	// Construct the server sockaddr_in structure
-	memset(&echoserver, 0, sizeof(echoserver));       // Clear struct
-	echoserver.sin_family = AF_INET;                  // Internet/IP
-	echoserver.sin_addr.s_addr = inet_addr(IPADDR);   // IP address
-	echoserver.sin_port = htons(PORT);		  // server port
-	
-	cprintf("trying to connect to server\n");
-	
-	// Establish connection
-	if (connect(sock, (struct sockaddr *) &echoserver, sizeof(echoserver)) < 0)
-		die("Failed to connect with server");
-	
-	cprintf("connected to server\n");
-	
+send_data(int sock, envid_t env_id, void *va, int len) {
 	// Send the word to the server
-	echolen = strlen(msg);
-	if (write(sock, msg, echolen) != echolen)
-		die("Mismatch in number of sent bytes");
-	
-	// Receive the word back from the server
-	cprintf("Received: \n");
-	while (received < echolen) {
-		int bytes = 0;
-		if ((bytes = read(sock, buffer, BUFFSIZE-1)) < 1) {
-			die("Failed to receive bytes from server");
-		}
-		received += bytes;
-		buffer[bytes] = '\0';        // Assure null terminated string
-		cprintf(buffer);
+	int r;
+	void *addr = va;
+	if (env_id != 0) {
+		// Map in at a temporary location (assume it will fit
+		// into one page.
+		return -1;
 	}
-	cprintf("\n");
-	
-	close(sock);
+
+	if ((r = write(sock, va, len)) != len) {
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -79,6 +44,8 @@ migrate() {
 
 	int r, child;
 	struct Trapframe tf;
+	int sock;
+	struct sockaddr_in migrated;
 
 	if ((r = sys_exofork()) < 0) {
 		return r;
@@ -105,12 +72,29 @@ migrate() {
 	// Return 0 in the child on the remote machine
 	tf.tf_regs.reg_eax = 0;
 
-	uint32_t temp = MIG_PROC_MIGRATE;
-	if ((r = send_data(0, &temp, sizeof(temp))) < 0) {
+	// Create the TCP socket
+	if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+		r = sock;
 		goto cleanup;
 	}
 
-	if ((r = send_data(0, &tf, sizeof(tf))) < 0) {
+	// Construct the server sockaddr_in structure
+	memset(&migrated, 0, sizeof(migrated));              // Clear struct
+	migrated.sin_family = AF_INET;                       // Internet/IP
+	migrated.sin_addr.s_addr = inet_addr("10.0.2.15");   // IP address
+	migrated.sin_port = htons(MIG_SERVER_PORT);	     // server port
+	
+	// Establish connection
+	if ((r = connect(sock, (struct sockaddr *) &migrated, sizeof(migrated))) < 0) {
+		goto cleanup;
+	}
+
+	uint32_t temp = MIG_PROC_MIGRATE;
+	if ((r = send_data(sock, 0, &temp, sizeof(temp))) < 0) {
+		goto cleanup;
+	}
+
+	if ((r = send_data(sock, 0, &tf, sizeof(tf))) < 0) {
 		goto cleanup;
 
 	}
@@ -126,25 +110,26 @@ migrate() {
 		}
 
 		DPRINTF8("[%d] Sending page at address: %x\n", child, addr);
-		if ((r = send_data(0, &addr, sizeof(addr))) < 0) {
+		if ((r = send_data(sock, 0, &addr, sizeof(addr))) < 0) {
 			goto cleanup;
 		}
 
-		if ((r = send_data(child, (void*)addr, PGSIZE)) < 0) {
+		if ((r = send_data(sock, child, (void*)addr, PGSIZE)) < 0) {
 			goto cleanup;
 		}
 		++temp;
 	}
 
 	addr = 0xffffffff;
-	if ((r = send_data(0, &addr, sizeof(addr))) < 0) {
+	if ((r = send_data(sock, 0, &addr, sizeof(addr))) < 0) {
 		goto cleanup;
 	}
 
-	if ((r = send_data(0, &temp, sizeof(temp))) < 0) {
+	if ((r = send_data(sock, 0, &temp, sizeof(temp))) < 0) {
 		goto cleanup;
 	}
 
+	close(sock);
 	// Success, return the child's env_id
 	r = child;
 
