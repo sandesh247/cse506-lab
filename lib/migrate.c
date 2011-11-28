@@ -10,15 +10,21 @@ int
 send_data(int sock, envid_t env_id, void *va, int len) {
 	// Send the word to the server
 	int r;
-	void *addr = va;
+	char *addr = va;
 	if (env_id != 0) {
 		// Map in at a temporary location (assume it will fit
 		// into one page.
-		return -1;
+		// TODO: Maybe fix: return -1;
 	}
 
-	if ((r = write(sock, va, len)) != len) {
-		return -1;
+	int l = len > 1200 ? 1200 : len;
+	while (l) {
+		if ((r = write(sock, addr, l)) != l) {
+			return -1;
+		}
+		len -= l;
+		addr += l;
+		l = len > 1200 ? 1200 : len;
 	}
 
 	return 0;
@@ -42,12 +48,16 @@ migrate() {
 	// number of pages[npages] (32-bits)
 	// 
 
-	int r, child;
+	int r;
+	envid_t child;
 	struct Trapframe tf;
 	int sock;
 	struct sockaddr_in migrated;
 
+	DPRINTF8("migrate() called\n");
+
 	if ((r = sys_exofork()) < 0) {
+		DPRINTF8("sys_exofork error::%e\n", r);
 		return r;
 	}
 
@@ -63,6 +73,7 @@ migrate() {
 	// Get the child's trapframe
 	r = sys_env_get_trapframe(child, &tf);
 	if (r < 0) {
+		DPRINTF8("sys_env_get_trapframe error::%e\n", r);
 		goto cleanup;
 	}
 
@@ -81,13 +92,17 @@ migrate() {
 	// Construct the server sockaddr_in structure
 	memset(&migrated, 0, sizeof(migrated));              // Clear struct
 	migrated.sin_family = AF_INET;                       // Internet/IP
-	migrated.sin_addr.s_addr = inet_addr("10.0.2.15");   // IP address
+	migrated.sin_addr.s_addr = inet_addr("127.0.0.1");   // IP address // "10.0.2.15"
 	migrated.sin_port = htons(MIG_SERVER_PORT);	     // server port
-	
+
+	DPRINTF8("Before connecting to migrated\n");
+
 	// Establish connection
 	if ((r = connect(sock, (struct sockaddr *) &migrated, sizeof(migrated))) < 0) {
 		goto cleanup;
 	}
+
+	DPRINTF8("!!Connected to migrated!!\n");
 
 	uint32_t temp = MIG_PROC_MIGRATE;
 	if ((r = send_data(sock, 0, &temp, sizeof(temp))) < 0) {
@@ -135,5 +150,8 @@ migrate() {
 
  cleanup:
 	sys_env_destroy(child);
+	if (r) {
+		DPRINTF8("Exiting due to error: %e\n", r);
+	}
 	return r;
 }

@@ -154,7 +154,7 @@ sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
 		return -E_BAD_ENV;
 	}
 
-	if((r = user_mem_check(env, tf, sizeof(struct Trapframe), PTE_U)) < 0) {
+	if((r = user_mem_check(curenv, tf, sizeof(struct Trapframe), PTE_U)) < 0) {
 		// Question: Is this right? we are only allowed to
 		// return -E_BAD_ENV, accroding to the comments.
 		return -E_BAD_ENV;
@@ -576,11 +576,11 @@ sys_net_recv(void *va, int size) {
 
 static int
 sys_env_get_trapframe(envid_t envid, struct Trapframe *tf) {
-	// panic("sys_env_set_trapframe not yet implemented");
 	// Check if the process is not runnable first
 	int r;
 	struct Env *env;
-	if((r = envid2env(envid, &env, 1)) < 0) {
+	if((r = envid2env(envid, &env, 0)) < 0) {
+		DPRINTF8("sys_env_get_trapframe::Invalid envid: %d\n", envid);
 		return -E_BAD_ENV;
 	}
 
@@ -589,7 +589,8 @@ sys_env_get_trapframe(envid_t envid, struct Trapframe *tf) {
 		return -1;
 	}
 
-	if((r = user_mem_check(env, tf, sizeof(struct Trapframe), PTE_U)) < 0) {
+	if((r = user_mem_check(curenv, tf, sizeof(struct Trapframe), PTE_U)) < 0) {
+		DPRINTF8("sys_env_get_trapframe::user_mem_check failed: %d\n", envid);
 		return -E_BAD_ENV;
 	}
 
