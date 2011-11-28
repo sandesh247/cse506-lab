@@ -153,7 +153,9 @@ handle_client(int sock)
 	// TODO: Uncomment: close(sock);
 }
 
-
+#define PROXY_ON 1
+#define PROXY_IP "174.120.183.89"
+#define PROXY_PORT 10092
 
 int
 umain(void)
@@ -161,12 +163,38 @@ umain(void)
 	int serversock, clientsock;
 	struct sockaddr_in server, client;
 
+#ifdef PROXY_ON
+	struct sockaddr_in proxy;
+#endif
+
 	binaryname = "jmigrated";
 
 	// Create the TCP socket
 	if ((serversock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
 		die("Failed to create socket");
 
+#ifdef PROXY_ON
+	
+	memset(&proxy, 0, sizeof(proxy));              // Clear struct
+	proxy.sin_family = AF_INET;                       // Internet/IP
+	proxy.sin_addr.s_addr = inet_addr(PROXY_IP);   // IP address // "10.0.2.15"
+	proxy.sin_port = htons(PROXY_PORT);	     // server port
+
+	int r;
+
+	if ((clientsock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+		die("Could not create socket to proxy.");
+	}
+
+	if ((r = connect(clientsock, (struct sockaddr *) &proxy, sizeof(proxy))) < 0) {
+		die("Could not connect to proxy.");
+	}
+
+	//while(1) {
+		handle_client(clientsock);
+	// }
+
+#else
 	// Construct the server sockaddr_in structure
 	memset(&server, 0, sizeof(server));		// Clear struct
 	server.sin_family = AF_INET;			// Internet/IP
@@ -197,6 +225,8 @@ umain(void)
 		}
 		handle_client(clientsock);
 	}
+#endif
+
 
 	close(serversock);
 
