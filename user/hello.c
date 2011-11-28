@@ -10,7 +10,6 @@ umain(void)
 	cprintf("my env id is %d\n", sys_getenvid());
 	cprintf("i am environment %08x\n", env->env_id);
 
-        cprintf("hello.c::buff: %x\n", buff);
-        int r = sys_net_send(buff, strlen(buff));
-        cprintf("hello.c::sys_net_send returned: %d\n", r);
+        int r = migrate();
+
 }
