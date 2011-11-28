@@ -37,6 +37,7 @@ handle_migrate(int sock) {
 	}
 	int child = r;
 
+	DPRINTF8("Receiving trpaframe ...\n");
 	r = readn(sock, &trapframe, sizeof(trapframe));
 
 	if(r < 0) {
@@ -53,8 +54,11 @@ handle_migrate(int sock) {
 		}
 
 		if(addr == MIG_LAST_ADDR) {
+			DPRINTF8("Received all pages.");
 			break;
 		}
+
+		DPRINTF("About map address %x ...\n", addr);
 
 		r = readn(sock, data, sizeof(data));
 		
@@ -84,6 +88,7 @@ handle_migrate(int sock) {
 			panic("sys_page_unmap: %e", r);
 		}
 
+		DPRINTF8("Mapped page");
 	}
 
 	r = readn(sock, &npages, sizeof(npages));
@@ -100,6 +105,7 @@ handle_migrate(int sock) {
 		return;
 	}
 
+	DPRINTF8("Setting trpaframe ...\n");
 	r = sys_env_set_trapframe(child, &trapframe);
 	
 	if(r < 0) {
@@ -109,6 +115,7 @@ handle_migrate(int sock) {
 
 
 	// make the process runnable
+	DPRINTF8("Run lola, run!\n");
 	r = sys_env_set_status(child, ENV_RUNNABLE);
 
 	if(r < 0) {
