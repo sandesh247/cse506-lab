@@ -144,13 +144,13 @@ migrate() {
 		goto cleanup;
 	}
 
-	close(sock);
+	// close(sock);
 	// Success, return the child's env_id
 	r = child;
 
  cleanup:
 	sys_env_destroy(child);
-	if (r) {
+	if (r < 0) {
 		DPRINTF8("Exiting due to error: %e\n", r);
 	}
 	return r;

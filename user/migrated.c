@@ -1,3 +1,4 @@
+// -*- c-basic-offset:8; indent-tabs-mode:t -*-
 #include <inc/lib.h>
 #include <lwip/sockets.h>
 #include <lwip/inet.h>
@@ -37,7 +38,7 @@ handle_migrate(int sock) {
 	}
 	int child = r;
 
-	DPRINTF8("Receiving trpaframe ...\n");
+	DPRINTF8("Receiving trapframe ...\n");
 	r = readn(sock, &trapframe, sizeof(trapframe));
 
 	if(r < 0) {
@@ -58,7 +59,7 @@ handle_migrate(int sock) {
 			break;
 		}
 
-		DPRINTF("About map address %x ...\n", addr);
+		DPRINTF8("About to map address %x ...\n", addr);
 
 		r = readn(sock, data, sizeof(data));
 		
@@ -88,7 +89,7 @@ handle_migrate(int sock) {
 			panic("sys_page_unmap: %e", r);
 		}
 
-		DPRINTF8("Mapped page");
+		DPRINTF8("Mapped page!\n");
 	}
 
 	r = readn(sock, &npages, sizeof(npages));
@@ -105,7 +106,7 @@ handle_migrate(int sock) {
 		return;
 	}
 
-	DPRINTF8("Setting trpaframe ...\n");
+	DPRINTF8("Setting trapframe ...\n");
 	r = sys_env_set_trapframe(child, &trapframe);
 	
 	if(r < 0) {
@@ -144,11 +145,12 @@ handle_client(int sock)
 			break;
 		case MIG_PROC_MIGRATE:
 			handle_migrate(sock);
+			break;
 		default:
 			panic("Invalid migration request: %d\n", preamble);
 	}
 
-	close(sock);
+	// TODO: Uncomment: close(sock);
 }
 
 

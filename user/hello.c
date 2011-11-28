@@ -11,5 +11,8 @@ umain(void)
 	cprintf("i am environment %08x\n", env->env_id);
 
         int r = migrate();
+        if (!r) {
+            cprintf("I am the CHILD environemnt: %d\n", sys_getenvid());
+        }
 
 }
