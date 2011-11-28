@@ -226,7 +226,9 @@ readn(int fdnum, void *buf, size_t n)
 	int m, tot;
 
 	for (tot = 0; tot < n; tot += m) {
-		m = read(fdnum, (char*)buf + tot, n - tot);
+		int bytes_to_receive = (n - tot) > 1024 ? 1024 : (n - tot);
+
+		m = read(fdnum, (char*)buf + tot, bytes_to_receive);
 		if (m < 0)
 			return m;
 		if (m == 0)
