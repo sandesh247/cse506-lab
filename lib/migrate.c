@@ -135,6 +135,11 @@ migrate() {
 			continue;
 		}
 
+		// Skip the page that we share with the file server.
+		if (addr == 0xd0000000) {
+			continue;
+		}
+
 		DPRINTF8("[%d] Sending page at address: %x\n", child, addr);
 		if ((r = send_data(sock, 0, &addr, sizeof(addr))) < 0) {
 			goto cleanup;
@@ -204,23 +209,26 @@ ripc_send(int pid, void *va, int len, char *rbuff, int *rlen) {
 		goto cleanup;
 	}
 
+	memset(code, 0, sizeof(code));
 	if ((r = read(sock, code, sizeof(code))) < 0) {
 		goto cleanup;
 	}
 
-	if (code[1] > *rlen) {
+	cprintf("code[0]: %d, code[1]: %d, code[2]: %d\n", code[0], code[1], code[2]);
+	if (code[2] > *rlen) {
 		r = -1;
 		goto cleanup;
 	}
 	// Read in code[2] bytes.
-	if ((r = read(sock, rbuff, code[2])) < 0) {
+	if ((r = readn(sock, rbuff, code[2])) < 0) {
 		goto cleanup;
 	}
 
-	*rlen = code[2];
+	*rlen = r;
+	r = 0;
 
  cleanup:
-	close(sock);
+	// close(sock);
 	return r;
 }
 

@@ -28,13 +28,15 @@ ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
 	error = sys_ipc_recv(pg != NULL ? pg : (void *) ~0);
 
 	DPRINTF4C("Received in environment [user] %d.\n", sys_getenvid());
-	assert(env->env_ipc_from);
 
 	if(error < 0) {
+		DPRINTF8("Error in ipc_recv: %e\n", error);
 		if(from_env_store) *from_env_store = 0;
 		if(perm_store) *perm_store = 0;
 		return error;
 	}
+
+	assert(env->env_ipc_from);
 
 	if(from_env_store) *from_env_store = env->env_ipc_from;
 	if(perm_store) *perm_store = env->env_ipc_perm;
