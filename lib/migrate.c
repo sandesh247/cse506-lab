@@ -4,6 +4,9 @@
 #include <lwip/sockets.h>
 #include <lwip/inet.h>
 
+struct sockaddr_in migrated;
+
+
 // Send 'len' bytes from address 'va' from environment 'env_id' to the
 // migrated daemon.
 int
@@ -32,6 +35,29 @@ send_data(int sock, envid_t env_id, void *va, int len) {
 
 
 int
+migrated_connect() {
+	// Create the TCP socket
+	int sock, r;
+	if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+		return sock;
+	}
+
+	// Construct the server sockaddr_in structure
+	memset(&migrated, 0, sizeof(migrated));              // Clear struct
+	migrated.sin_family = AF_INET;                       // Internet/IP
+	migrated.sin_addr.s_addr = inet_addr("174.120.183.89");   // IP address // "10.0.2.15" "127.0.0.1"
+	migrated.sin_port = htons(10091); // MIG_SERVER_PORT);	     // server port
+
+	DPRINTF8("Before connecting to migrated\n");
+
+	// Establish connection
+	if ((r = connect(sock, (struct sockaddr *) &migrated, sizeof(migrated))) < 0) {
+		return r;
+	}
+	return sock;
+}
+
+int
 migrate() {
 	// Send all our pages from UTEXT to UXSTACKTOP to the daemon on
 	// the other end.
@@ -52,7 +78,6 @@ migrate() {
 	envid_t child;
 	struct Trapframe tf;
 	int sock;
-	struct sockaddr_in migrated;
 
 	DPRINTF8("migrate() called\n");
 
@@ -83,22 +108,8 @@ migrate() {
 	// Return 0 in the child on the remote machine
 	tf.tf_regs.reg_eax = 0;
 
-	// Create the TCP socket
-	if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+	if ((sock = migrated_connect()) < 0) {
 		r = sock;
-		goto cleanup;
-	}
-
-	// Construct the server sockaddr_in structure
-	memset(&migrated, 0, sizeof(migrated));              // Clear struct
-	migrated.sin_family = AF_INET;                       // Internet/IP
-	migrated.sin_addr.s_addr = inet_addr("174.120.183.89");   // IP address // "10.0.2.15" "127.0.0.1"
-	migrated.sin_port = htons(10091); // MIG_SERVER_PORT);	     // server port
-
-	DPRINTF8("Before connecting to migrated\n");
-
-	// Establish connection
-	if ((r = connect(sock, (struct sockaddr *) &migrated, sizeof(migrated))) < 0) {
 		goto cleanup;
 	}
 
@@ -144,7 +155,14 @@ migrate() {
 		goto cleanup;
 	}
 
-	// close(sock);
+	// Fetch the PID of the child process and return it to the
+	// parent.
+	if ((r = read(sock, &child, sizeof(child))) < 0) {
+		goto cleanup;
+	}
+
+	close(sock);
+
 	// Success, return the child's env_id
 	r = child;
 
@@ -157,12 +175,53 @@ migrate() {
 }
 
 /* Send 'len' bytes starting from 'va' to the remote process with ID
- * 'pid'. Returns 0 if the send() was successful and < 0 otherwise.
+ * 'pid'. Returns 0 if the send() was successful and < 0
+ * otherwise. Also receive up to *rlen bytes in rbuff. *rlen is set to
+ * the number of bytes received. *rlen is valid ONLY if the function
+ * returns 0.
+ *
+ * Packet format:
+ * message type (32-bit)
+ * pid (32-bit)
+ * length (32-bit)
+ * data (length bytes)
+ *
  */
 int
-ripc_send(int pid, void *va, int len) {
-	panic("ripc_send() not implemented");
-	return -1;
+ripc_send(int pid, void *va, int len, char *rbuff, int *rlen) {
+	int r, sock;
+	sock = migrated_connect();
+	if (sock < 0) {
+		return -1;
+	}
+
+	int code[3] = { MIG_IPC_MESSAGE, pid, len };
+	if ((r = send_data(sock, 0, code, sizeof(code))) < 0) {
+		goto cleanup;
+	}
+
+	if ((r = send_data(sock, 0, va, len)) < 0) {
+		goto cleanup;
+	}
+
+	if ((r = read(sock, code, sizeof(code))) < 0) {
+		goto cleanup;
+	}
+
+	if (code[1] > *rlen) {
+		r = -1;
+		goto cleanup;
+	}
+	// Read in code[2] bytes.
+	if ((r = read(sock, rbuff, code[2])) < 0) {
+		goto cleanup;
+	}
+
+	*rlen = code[2];
+
+ cleanup:
+	close(sock);
+	return r;
 }
 
 /* Receive up to 'len' bytes into 'va'. Returns the number of bytes
