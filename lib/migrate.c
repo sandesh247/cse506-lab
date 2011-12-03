@@ -225,10 +225,13 @@ ripc_send(int pid, void *va, int len, char *rbuff, int *rlen) {
 }
 
 /* Receive up to 'len' bytes into 'va'. Returns the number of bytes
- * actually received or < 0 if an error occurred.
+ * actually received or < 0 if an error occurred. Additionally, send
+ * *slen bytes at address sbuff to the person we received data
+ * from. *slen is set to 0 on success.
+ * 
  */
 int
-ripc_recv(void *va, int len) {
+ripc_recv(void *va, int len, char *sbuff, int *slen) {
 	panic("ripc_recv() not implemented");
 	return -1;
 }
