@@ -124,6 +124,9 @@ handle_migrate(int sock) {
 		sys_env_destroy(child);
 	}
 
+	// return the child process identifier
+	write(sock, &child, sizeof(child));
+
 	return;
 }
 
