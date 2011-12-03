@@ -237,7 +237,7 @@ ripc_recv(void *va, int *len, char *sbuff, int slen) {
 	int perm;
 	int r;
 
-	void *temp = (void *) UTEMP + PGSIZE * 2;
+	void *temp = (void *) UTEMP + PGSIZE * 3;
 	*len = ipc_recv(&migrated_id, temp, &perm);
 	memmove(va, temp, *len);
 
@@ -246,7 +246,14 @@ ripc_recv(void *va, int *len, char *sbuff, int slen) {
 		return -1;
 	}
 
-	ipc_send(migrated_id, slen, sbuff, PTE_P | PTE_U);
+	sys_page_unmap(0, temp);
+	r = sys_page_alloc(0, temp, PTE_U | PTE_W | PTE_P);
+	if (r < 0) {
+		return -2;
+	}
+
+	memmove(temp, sbuff, slen);
+	ipc_send(migrated_id, slen, temp, PTE_P | PTE_U);
 
 	return 0;
 }
