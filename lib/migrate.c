@@ -224,14 +224,27 @@ ripc_send(int pid, void *va, int len, char *rbuff, int *rlen) {
 	return r;
 }
 
-/* Receive up to 'len' bytes into 'va'. Returns the number of bytes
- * actually received or < 0 if an error occurred. Additionally, send
- * *slen bytes at address sbuff to the person we received data
- * from. *slen is set to 0 on success.
+/* Receive 'len' bytes into 'va' - len is set to the actual number of bytes
+ * received. Additionally, send slen bytes at address sbuff to the person we
+ * received data from.
+ *
+ * Return 0 on success, <0 on failure.
  * 
  */
 int
-ripc_recv(void *va, int len, char *sbuff, int *slen) {
-	panic("ripc_recv() not implemented");
-	return -1;
+ripc_recv(void *va, int *len, char *sbuff, int slen) {
+	envid_t migrated_id;
+	int perm;
+	int r;
+
+	*len = ipc_recv(&migrated_id, va, &perm);
+
+	if(!migrated_id || !perm) {
+		DPRINTF8("Could not recev from the mimgrated server");
+		return -1;
+	}
+
+	ipc_send(migrated_id, slen, sbuff, PTE_P | PTE_U);
+
+	return 0;
 }
