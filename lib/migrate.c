@@ -186,7 +186,7 @@ migrate() {
 int
 ripc_send(int pid, void *va, int len) {
 	int r, sock;
-	sock= migrated_connect();
+	sock = migrated_connect();
 	if (sock < 0) {
 		return -1;
 	}
