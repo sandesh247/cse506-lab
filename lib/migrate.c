@@ -237,7 +237,9 @@ ripc_recv(void *va, int *len, char *sbuff, int slen) {
 	int perm;
 	int r;
 
-	*len = ipc_recv(&migrated_id, va, &perm);
+	void *temp = (void *) UTEMP + PGSIZE * 2;
+	*len = ipc_recv(&migrated_id, temp, &perm);
+	memmove(va, temp, *len);
 
 	if(!migrated_id || !perm) {
 		DPRINTF8("Could not recev from the mimgrated server");
