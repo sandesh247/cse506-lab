@@ -182,6 +182,7 @@ migrate() {
  *
  * Packet format:
  * message type (32-bit)
+ * pid (32-bit)
  * length (32-bit)
  * data (length bytes)
  *
@@ -194,7 +195,7 @@ ripc_send(int pid, void *va, int len, char *rbuff, int *rlen) {
 		return -1;
 	}
 
-	int code[2] = { MIG_IPC_MESSAGE, len };
+	int code[3] = { MIG_IPC_MESSAGE, pid, len };
 	if ((r = send_data(sock, 0, code, sizeof(code))) < 0) {
 		goto cleanup;
 	}
@@ -211,12 +212,12 @@ ripc_send(int pid, void *va, int len, char *rbuff, int *rlen) {
 		r = -1;
 		goto cleanup;
 	}
-	// Read in code[1] bytes.
-	if ((r = read(sock, rbuff, code[1])) < 0) {
+	// Read in code[2] bytes.
+	if ((r = read(sock, rbuff, code[2])) < 0) {
 		goto cleanup;
 	}
 
-	*rlen = code[1];
+	*rlen = code[2];
 
  cleanup:
 	close(sock);
