@@ -191,6 +191,11 @@ ripc_send(int pid, void *va, int len) {
 		return -1;
 	}
 
+	int code[2] = { MIG_IPC_MESSAGE, len };
+	if ((r = send_data(sock, 0, code, sizeof(code))) < 0) {
+		goto cleanup;
+	}
+
 	if ((r = send_data(sock, 0, va, len)) < 0) {
 		goto cleanup;
 	}
