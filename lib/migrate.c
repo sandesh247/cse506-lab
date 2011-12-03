@@ -175,7 +175,10 @@ migrate() {
 }
 
 /* Send 'len' bytes starting from 'va' to the remote process with ID
- * 'pid'. Returns 0 if the send() was successful and < 0 otherwise.
+ * 'pid'. Returns 0 if the send() was successful and < 0
+ * otherwise. Also receive up to *rlen bytes in rbuff. *rlen is set to
+ * the number of bytes received. *rlen is valid ONLY if the function
+ * returns 0.
  *
  * Packet format:
  * message type (32-bit)
@@ -184,7 +187,7 @@ migrate() {
  *
  */
 int
-ripc_send(int pid, void *va, int len) {
+ripc_send(int pid, void *va, int len, char *rbuff, int *rlen) {
 	int r, sock;
 	sock = migrated_connect();
 	if (sock < 0) {
@@ -199,6 +202,21 @@ ripc_send(int pid, void *va, int len) {
 	if ((r = send_data(sock, 0, va, len)) < 0) {
 		goto cleanup;
 	}
+
+	if ((r = read(sock, code, sizeof(code))) < 0) {
+		goto cleanup;
+	}
+
+	if (code[1] > *rlen) {
+		r = -1;
+		goto cleanup;
+	}
+	// Read in code[1] bytes.
+	if ((r = read(sock, rbuff, code[1])) < 0) {
+		goto cleanup;
+	}
+
+	*rlen = code[1];
 
  cleanup:
 	close(sock);
