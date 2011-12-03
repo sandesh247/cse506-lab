@@ -161,6 +161,8 @@ migrate() {
  */
 int
 ripc_send(int pid, void *va, int len) {
+	panic("ripc_send() not implemented");
+	return -1;
 }
 
 /* Receive up to 'len' bytes into 'va'. Returns the number of bytes
@@ -168,4 +170,6 @@ ripc_send(int pid, void *va, int len) {
  */
 int
 ripc_recv(void *va, int len) {
+	panic("ripc_recv() not implemented");
+	return -1;
 }
