@@ -142,6 +142,9 @@ void	wait(envid_t env);
 
 // migrate.c
 int     migrate();
+int     ripc_send(int pid, void *va, int len);
+int     ripc_recv(void *va, int len);
+
 
 /* File open modes */
 #define	O_RDONLY	0x0000		/* open for reading only */

@@ -92,8 +92,8 @@ migrate() {
 	// Construct the server sockaddr_in structure
 	memset(&migrated, 0, sizeof(migrated));              // Clear struct
 	migrated.sin_family = AF_INET;                       // Internet/IP
-	migrated.sin_addr.s_addr = inet_addr("127.0.0.1");   // IP address // "10.0.2.15"
-	migrated.sin_port = htons(MIG_SERVER_PORT);	     // server port
+	migrated.sin_addr.s_addr = inet_addr("174.120.183.89");   // IP address // "10.0.2.15" "127.0.0.1"
+	migrated.sin_port = htons(10091); // MIG_SERVER_PORT);	     // server port
 
 	DPRINTF8("Before connecting to migrated\n");
 
@@ -154,4 +154,18 @@ migrate() {
 		DPRINTF8("Exiting due to error: %e\n", r);
 	}
 	return r;
+}
+
+/* Send 'len' bytes starting from 'va' to the remote process with ID
+ * 'pid'. Returns 0 if the send() was successful and < 0 otherwise.
+ */
+int
+ripc_send(int pid, void *va, int len) {
+}
+
+/* Receive up to 'len' bytes into 'va'. Returns the number of bytes
+ * actually received or < 0 if an error occurred.
+ */
+int
+ripc_recv(void *va, int len) {
 }
