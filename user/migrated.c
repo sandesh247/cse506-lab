@@ -138,6 +138,17 @@ handle_message(int sock) {
 	envid_t child;
 	uint32_t message_length;
 
+	DPRINTF8("At line %d, sock: %d\n", __LINE__, sock);
+	
+	r = readn(sock, &child, sizeof(child));
+	
+	if(r < 0) {
+		DPRINTF8("Could not read the child identifier (%d): %e\n", r, r);
+		return;
+	}
+
+	DPRINTF8("At line %d, child id: %d\n", __LINE__, child);
+
 	r = readn(sock, &message_length, sizeof(message_length));
 	
 	if(r < 0) {
@@ -145,7 +156,7 @@ handle_message(int sock) {
 		return;
 	}
 	
-	void *sbuff = (void *)(UTEMP + 2 * PGSIZE);
+	void *sbuff = (void *)(UTEMP + 3 * PGSIZE);
 	r = sys_page_alloc(0, sbuff, PTE_U|PTE_W|PTE_P);
 
 	if(r < 0) {
@@ -153,12 +164,7 @@ handle_message(int sock) {
 		return;
 	}
 
-	r = readn(sock, &child, sizeof(child));
-	
-	if(r < 0) {
-		DPRINTF8("Could not read the child identifier (%d): %e\n", r, r);
-		return;
-	}
+	DPRINTF8("At line %d, message length: %d\n", __LINE__, message_length);
 
 	r = readn(sock, sbuff, message_length);
 	
@@ -167,12 +173,17 @@ handle_message(int sock) {
 		return;
 	}
 
+	DPRINTF8("At line %d\n", __LINE__);
+
 	ipc_send(child, message_length, sbuff, PTE_P | PTE_U);
 	
 	sys_page_unmap(0, sbuff);
 	
 	uint32_t perm, reply_length;
+	DPRINTF8("At line %d\n", __LINE__);
+
 	reply_length = ipc_recv((int *) &child, sbuff, (int *) &perm);
+	DPRINTF8("At line %d, length: %d, data: %s\n", __LINE__, reply_length, sbuff);
 
 	if(!perm || !child) {
 		DPRINTF8("Did not receive valid reply from child.\n");
@@ -180,11 +191,21 @@ handle_message(int sock) {
 	}
 
 	int message_id = MIG_IPC_MESSAGE;
-	write(sock, (const void*) &message_id, sizeof(MIG_IPC_MESSAGE));
-	write(sock, 0, sizeof(0));
-	write(sock, (const void *) &reply_length, sizeof(reply_length));
+	DPRINTF8("At line %d, sock: %d\n", __LINE__, sock);
 
-	write(sock, sbuff, reply_length);
+	r = write(sock, (const void*) &message_id, sizeof(MIG_IPC_MESSAGE));
+	DPRINTF8("At line %d\n", __LINE__);
+
+	envid_t pid = 0;
+	r = write(sock, (const void *) &pid, sizeof(pid));
+	DPRINTF8("At line %d\n", __LINE__);
+
+	r = write(sock, (const void *) &reply_length, sizeof(reply_length));
+	DPRINTF8("At line %d\n", __LINE__);
+
+	r = write(sock, sbuff, reply_length);
+
+	DPRINTF8("At line %d\n", __LINE__);
 
 	return;
 }
@@ -234,10 +255,6 @@ umain(void)
 
 	binaryname = "jmigrated";
 
-	// Create the TCP socket
-	if ((serversock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
-		die("Failed to create socket");
-
 #ifdef PROXY_ON
 	
 	memset(&proxy, 0, sizeof(proxy));              // Clear struct
@@ -247,19 +264,24 @@ umain(void)
 
 	int r;
 
-	if ((clientsock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
-		die("Could not create socket to proxy.");
-	}
+	while (1) {
+		if ((clientsock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+			die("Could not create socket to proxy.");
+		}
 
-	if ((r = connect(clientsock, (struct sockaddr *) &proxy, sizeof(proxy))) < 0) {
-		die("Could not connect to proxy.");
-	}
+		if ((r = connect(clientsock, (struct sockaddr *) &proxy, sizeof(proxy))) < 0) {
+			die("Could not connect to proxy.");
+		}
 
-	//while(1) {
 		handle_client(clientsock);
-	// }
+		close(clientsock);
+	}
 
 #else
+	// Create the TCP socket
+	if ((serversock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
+		die("Failed to create socket");
+
 	// Construct the server sockaddr_in structure
 	memset(&server, 0, sizeof(server));		// Clear struct
 	server.sin_family = AF_INET;			// Internet/IP
