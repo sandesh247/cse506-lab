@@ -143,7 +143,7 @@ void	wait(envid_t env);
 // migrate.c
 int     migrate();
 int     ripc_send(int pid, void *va, int len, char *rbuff, int *rlen);
-int     ripc_recv(void *va, int len);
+int     ripc_recv(void *va, int len, char *sbuff, int *slen);
 
 
 /* File open modes */
