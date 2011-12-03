@@ -159,7 +159,8 @@ int     ripc_recv(void *va, int len);
 
 // migrated message types
 #define MIG_HEARTBEAT				0x0000
-#define MIG_PROC_MIGRATE		0x0001
+#define MIG_PROC_MIGRATE		        0x0001
+#define MIG_IPC_MESSAGE                         0x0002
 
 // migration constants
 #define MIG_LAST_ADDR				0xffffffff
