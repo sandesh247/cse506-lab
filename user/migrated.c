@@ -112,6 +112,7 @@ handle_migrate(int sock) {
 	if(r < 0) {
 		DPRINTF8("Could not set trapframe (%d): %e\n", r, r);
 		sys_env_destroy(child);
+		return;
 	}
 
 
@@ -122,10 +123,68 @@ handle_migrate(int sock) {
 	if(r < 0) {
 		DPRINTF8("Could not set child to runnable (%d): %e\n", r, r);
 		sys_env_destroy(child);
+		return;
 	}
 
 	// return the child process identifier
 	write(sock, &child, sizeof(child));
+
+	return;
+}
+
+static void
+handle_message(int sock) {
+	int r;
+	envid_t child;
+	uint32_t message_length;
+
+	r = readn(sock, &message_length, sizeof(message_length));
+	
+	if(r < 0) {
+		DPRINTF8("Could not read the message length (%d): %e\n", r, r);
+		return;
+	}
+	
+	void *sbuff = (void *)(UTEMP + 2 * PGSIZE);
+	r = sys_page_alloc(0, sbuff, PTE_U|PTE_W|PTE_P);
+
+	if(r < 0) {
+		DPRINTF8("Could not allocate page at %x (%d): %e\n", sbuff, r, r);
+		return;
+	}
+
+	r = readn(sock, &child, sizeof(child));
+	
+	if(r < 0) {
+		DPRINTF8("Could not read the child identifier (%d): %e\n", r, r);
+		return;
+	}
+
+	r = readn(sock, sbuff, message_length);
+	
+	if(r < 0) {
+		DPRINTF8("Could not read the message (%d): %e\n", r, r);
+		return;
+	}
+
+	ipc_send(child, message_length, sbuff, PTE_P | PTE_U);
+	
+	sys_page_unmap(0, sbuff);
+	
+	uint32_t perm, reply_length;
+	reply_length = ipc_recv((int *) &child, sbuff, (int *) &perm);
+
+	if(!perm || !child) {
+		DPRINTF8("Did not receive valid reply from child.\n");
+		return;
+	}
+
+	int message_id = MIG_IPC_MESSAGE;
+	write(sock, (const void*) &message_id, sizeof(MIG_IPC_MESSAGE));
+	write(sock, 0, sizeof(0));
+	write(sock, (const void *) &reply_length, sizeof(reply_length));
+
+	write(sock, sbuff, reply_length);
 
 	return;
 }
@@ -148,6 +207,9 @@ handle_client(int sock)
 			break;
 		case MIG_PROC_MIGRATE:
 			handle_migrate(sock);
+			break;
+		case MIG_IPC_MESSAGE:
+			handle_message(sock);
 			break;
 		default:
 			panic("Invalid migration request: %d\n", preamble);
