@@ -6,6 +6,9 @@
 
 struct sockaddr_in migrated;
 
+#ifndef MIGRATED_HOST
+#define MIGRATED_HOST "127.0.0.1"
+#endif
 
 // Send 'len' bytes from address 'va' from environment 'env_id' to the
 // migrated daemon.
@@ -17,7 +20,10 @@ send_data(int sock, envid_t env_id, void *va, int len) {
 	if (env_id != 0) {
 		// Map in at a temporary location (assume it will fit
 		// into one page.
-		// TODO: Maybe fix: return -1;
+		// 
+		// Note: We don't used this since we assume that the
+		// process with environment ID 'env_id' forked from
+		// the current process.
 	}
 
 	int l = len > 1200 ? 1200 : len;
@@ -45,8 +51,15 @@ migrated_connect() {
 	// Construct the server sockaddr_in structure
 	memset(&migrated, 0, sizeof(migrated));              // Clear struct
 	migrated.sin_family = AF_INET;                       // Internet/IP
-	migrated.sin_addr.s_addr = inet_addr("174.120.183.89");   // IP address // "10.0.2.15" "127.0.0.1"
+#ifdef USE_PROXY
+	migrated.sin_addr.s_addr = inet_addr("174.120.183.89");   // IP address
 	migrated.sin_port = htons(10091); // MIG_SERVER_PORT);	     // server port
+#else
+	migrated.sin_addr.s_addr = inet_addr(MIGRATED_HOST);   // IP
+							       // address
+	migrated.sin_port = htons(MIG_SERVER_PORT);	     // server
+							     // port
+#endif
 
 	DPRINTF8("Before connecting to migrated\n");
 
@@ -228,15 +241,15 @@ ripc_send(int pid, void *va, int len, char *rbuff, int *rlen) {
 	r = 0;
 
  cleanup:
-	// close(sock);
+	close(sock);
 	return r;
 }
 
-/* Receive 'len' bytes into 'va' - len is set to the actual number of bytes
- * received. Additionally, send slen bytes at address sbuff to the person we
- * received data from.
+/* Receive 'len' bytes into 'va' - len is set to the actual number of
+ * bytes received. Additionally, send slen bytes at address sbuff to
+ * the person we received data from.
  *
- * Return 0 on success, <0 on failure.
+ * Return 0 on success, < 0 on failure.
  * 
  */
 int

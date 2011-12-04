@@ -76,8 +76,13 @@ i386_init(void)
 	// Touch all you want.
 	// ENV_CREATE(user_testpteshare);
 
+#ifdef MIGRATED
 	ENV_CREATE(user_migrated);
+#endif
+
+#ifdef MIGRATEC
 	ENV_CREATE(user_hello);
+#endif
 
 	// ENV_CREATE(net_testinput);
 
