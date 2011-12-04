@@ -28,10 +28,12 @@ file descriptors aren't shared. It also sends the trapframe, so that the
 current state of the environment can be restored.
 
 migrated:
+---------
 
-migrated is a daemon that runs inside JOS instances which want to host
-migrated processes. The daemon listens for incoming migration requests, and
-for each request, it -
+migrated (pronounced migrate-d) is a daemon that runs inside JOS
+instances which want to host migrated processes. The daemon listens
+for incoming migration requests, and for each request, it -
+
  - forks a new process
  - maps the pages of data at the appropriate virtual memory locations
  - restores the trapframe
@@ -64,3 +66,22 @@ child to wait for a message from the server, in order send it's own data (as a
 reply) to the parent. The message from the parent can be seen as an indication
 of "intent" to receive data.
 
+This design allows the clients to be behind a NAT and only servers
+need to be accessible on the public internet.
+
+We also have a proxy application (echo.js) that allows the 2 JOS
+instances to function even if BOTH of them are behind a NAT.
+
+
+Instructions on how to run the code:
+------------------------------------
+
+Why do we think what we did works:
+----------------------------------
+
+We started migrated on machine-1. Then changed hello.c to include some
+new cprintf()s. This process was started on machine-2 and migrated to
+machine-1. The process ran on machine-1 and produced output related to
+the newly introduced cprintf()s.
+
+This proves beyond doubt that live process migration works!!
