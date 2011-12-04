@@ -239,23 +239,30 @@ handle_client(int sock)
 	// TODO: Uncomment: close(sock);
 }
 
-#define PROXY_ON 1
+#ifndef PROXY_IP
 #define PROXY_IP "174.120.183.89"
+#endif
+
+#ifndef PROXY_PORT
 #define PROXY_PORT 10092
+#endif
 
 int
 umain(void)
 {
-	int serversock, clientsock;
-	struct sockaddr_in server, client;
+	int clientsock;
+	struct sockaddr_in client;
 
-#ifdef PROXY_ON
+#ifdef USE_PROXY
 	struct sockaddr_in proxy;
+#else
+	int serversock;
+	struct sockaddr_in server;
 #endif
 
 	binaryname = "jmigrated";
 
-#ifdef PROXY_ON
+#ifdef USE_PROXY
 	
 	memset(&proxy, 0, sizeof(proxy));              // Clear struct
 	proxy.sin_family = AF_INET;                       // Internet/IP
@@ -273,8 +280,8 @@ umain(void)
 			die("Could not connect to proxy.");
 		}
 
+		// handle client will close the socket
 		handle_client(clientsock);
-		close(clientsock);
 	}
 
 #else
@@ -312,10 +319,9 @@ umain(void)
 		}
 		handle_client(clientsock);
 	}
-#endif
-
-
+	
 	close(serversock);
+#endif
 
 	return 0;
 }

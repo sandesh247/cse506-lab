@@ -84,6 +84,12 @@ i386_init(void)
 	ENV_CREATE(user_hello);
 #endif
 
+#ifdef USE_PROXY
+	cprintf("Using proxy for migrate functionality.\n");
+#else
+	cprintf("Using vanilla daemon for migrate functionality.\n");
+#endif
+
 	// ENV_CREATE(net_testinput);
 
 	// ENV_CREATE(user_testtime);
