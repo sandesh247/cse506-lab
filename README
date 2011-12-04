@@ -1,0 +1,66 @@
++====================================+
+| JOS 2011 - The distributed edition |
++====================================+
+
+GOALS
+=====
+
+- live migration of processes
+- inter-process communication between the parent, and the remote child process.
+
+Live migration of processes
+---------------------------
+
+int migrate()
+
+- A new system call: migrate(): Just like fork(), but spawns the child on a
+	different machine.
+
+- Returns
+ - 0: in the same process
+ - envid: in the migrated process
+ - < 0: in case of error
+
+The migrate() function scans all the pages present in the user area of virtual
+memory for the currently running process, and sends the off to the remote
+machine. The area where file mappings are stored is kept back - therefore the
+file descriptors aren't shared. It also sends the trapframe, so that the
+current state of the environment can be restored.
+
+migrated:
+
+migrated is a daemon that runs inside JOS instances which want to host
+migrated processes. The daemon listens for incoming migration requests, and
+for each request, it -
+ - forks a new process
+ - maps the pages of data at the appropriate virtual memory locations
+ - restores the trapframe
+ - runs the new environment
+
+
+IPC
+---
+- Two new user-level function, ripc_send, and ripc_recv have been implemented.
+  
+int ripc_send(int pid, void *va, int len, char *rbuff, int *rlen)
+
+ripc_send sends len bytes of data at va to the remote process with identifier
+pid. The identifier is the same value as that returned by the migrate call.
+rbuff is filled with data sent as a reply by the child, ans len is set to the
+length of the reply.
+
+int ripc_recv(void *va, int *len, char *sbuff, int slen)
+
+ripc_recv is used by the child to receive data at location va, the length of
+which is stored in len. Additionally, it may also send slen bytes of data,
+stored at sbuff to the parent process.
+
+Note that in the current local IPC implementation, sends and recvs are
+synchronous, which means that an environment cannot send data to an
+environment, unless the environment is actively seeking it.
+
+In a somewhat similar fashion our remote process implementation requires the
+child to wait for a message from the server, in order send it's own data (as a
+reply) to the parent. The message from the parent can be seen as an indication
+of "intent" to receive data.
+
