@@ -76,6 +76,38 @@ instances to function even if BOTH of them are behind a NAT.
 Instructions on how to run the code:
 ------------------------------------
 
+Always do a "make clean" before running this code.
+Always start the server before starting the client.
+
+On the server (where the process from the client will eventially be
+migrated to), run the following command:
+
+$> CFLAGS="-DMIGRATED" make qemu
+
+
+On the client (machine that initiates migration of the process), run
+the following command:
+
+$> CFLAGS="-DMIGRATEC" make qemu
+
+
+If BOTH the client and the server are behind a NAT, set CFLAGS as
+follows:
+
+1. For the server: CFLAGS="-DMIGRATED -DUSE_PROXY"
+
+2. For the client: CFLAGS="-DMIGRATEC -DUSE_PROXY"
+
+
+To run the proxy locally, download node.js and run as:
+
+$> node echo.js
+
+You will need to change the IP from "174.120.183.89" (wherever it
+occurs in the source code) to whatever the machine IP is that is
+running echo.js.
+
+
 Why do we think what we did works:
 ----------------------------------
 
