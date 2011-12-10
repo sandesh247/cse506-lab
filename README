@@ -22,7 +22,7 @@ int migrate()
  - < 0: in case of error
 
 The migrate() function scans all the pages present in the user area of virtual
-memory for the currently running process, and sends the off to the remote
+memory for the currently running process, and sends them off to the remote
 machine. The area where file mappings are stored is kept back - therefore the
 file descriptors aren't shared. It also sends the trapframe, so that the
 current state of the environment can be restored.
@@ -79,7 +79,7 @@ Instructions on how to run the code:
 Always do a "make clean" before running this code.
 Always start the server before starting the client.
 
-On the server (where the process from the client will eventially be
+On the server (where the process from the client will eventually be
 migrated to), run the following command:
 
 $> CFLAGS="-DMIGRATED" make qemu
